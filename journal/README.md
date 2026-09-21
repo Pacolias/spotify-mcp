@@ -23,3 +23,4 @@ Chronological log of architecture decisions and notable findings for `spotify-mc
 19. [Registration via `claude mcp add` instead of manual JSON editing](19-claude-code-registration.md)
 20. [Friendly startup errors instead of raw pydantic stacktraces](20-friendly-startup-errors.md)
 21. [Composability fix: expose track IDs everywhere, add remove_tracks](21-composability-fix-and-remove-tracks.md)
+22. [Added MCP resources: now-playing, playlists, playlist/{id}](22-mcp-resources.md)

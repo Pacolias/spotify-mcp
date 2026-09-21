@@ -6,11 +6,11 @@ This is a portfolio project. The reasoning behind every architecture decision �
 
 ## How it works
 
-[MCP](https://modelcontextprotocol.io/) is an open protocol that lets an AI client (like Claude) talk to external tools and data sources through a standard interface, instead of custom one-off integrations. A client connects to a server, and the server exposes **tools** the model can call — regular functions with a name, a description, and a typed schema, generated from the function's signature and docstring.
+[MCP](https://modelcontextprotocol.io/) is an open protocol that lets an AI client (like Claude) talk to external tools and data sources through a standard interface, instead of custom one-off integrations. A client connects to a server, and the server exposes two kinds of things: **tools** — functions the model actively decides to call, with a name, description, and typed schema generated from the function's signature and docstring — and **resources** — read-only, URI-addressed data (e.g. `spotify://me/now-playing`) meant to be listed and attached to context more like a referenced document than an invoked action.
 
 This project is two small, single-purpose local programs:
 
-- **The MCP server itself** (`spotify_mcp.stdio_server`), talking to its host over **stdio** — the host process launches it and communicates over stdin/stdout, no network involved. This is what an MCP-compatible client actually connects to.
+- **The MCP server itself** (`spotify_mcp.cli`, the `spotify-mcp` command), talking to its host over **stdio** — the host process launches it and communicates over stdin/stdout, no network involved. This is what an MCP-compatible client actually connects to.
 - **A local login helper** (`spotify_mcp.main`, a small FastAPI app), run separately, that handles the Spotify OAuth2 (Authorization Code + PKCE) flow at `/auth/login` and `/auth/callback`. Spotify data (like "what's currently playing") is user-specific, so a logged-in user's access token is needed to call the Spotify API on their behalf. The login step needs a browser and an HTTP redirect regardless of how the MCP server itself talks to its host — that's a property of OAuth, not of MCP transport — so it's kept as its own small process rather than folded into the stdio one.
 
 Once logged in, the access/refresh token pair is stored in a small SQLite database, shared by both processes, and transparently refreshed when it's close to expiring.
@@ -23,6 +23,7 @@ graph TD
     subgraph Stdio["MCP server process (stdio)"]
         MCPServer["mcp_server.run()<br/>stdio transport"]
         Tools["MCP tools<br/>search, now_playing, top_tracks, ..."]
+        Resources["MCP resources<br/>spotify://me/now-playing, ..."]
     end
 
     subgraph LoginApp["Login helper (FastAPI, run separately)"]
@@ -36,7 +37,9 @@ graph TD
 
     Host -->|"spawns as subprocess, stdin/stdout"| MCPServer
     MCPServer --> Tools
+    MCPServer --> Resources
     Tools --> SpotifyClient
+    Resources --> SpotifyClient
 
     Browser --> AuthRoutes
     AuthRoutes -->|"redirect + code"| SpotifyAuth
@@ -68,6 +71,16 @@ graph TD
 | `skip_previous` | Skip to the previous track. |
 | `set_playback_volume` | Set playback volume (0-100). |
 | `queue_track` | Add a track to the playback queue. |
+
+### Available resources
+
+Read-only, returned as JSON.
+
+| Resource | Description |
+|---|---|
+| `spotify://me/now-playing` | The track currently playing, if any. |
+| `spotify://me/playlists` | The logged-in user's playlists. |
+| `spotify://playlist/{playlist_id}` | The tracks in a specific playlist. |
 
 ## Setup
 

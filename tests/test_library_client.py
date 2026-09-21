@@ -47,6 +47,20 @@ async def test_get_saved_tracks_parses_results(logged_in) -> None:
 
 
 @respx.mock
+async def test_get_saved_tracks_sends_offset_param(logged_in) -> None:
+    # Spotify caps limit at 50 (confirmed against the real API — see
+    # journal); offset is how a large Liked Songs library gets paged
+    # through.
+    route = respx.get(f"{SPOTIFY_API_BASE}/me/tracks").mock(
+        return_value=httpx.Response(200, json={"items": []})
+    )
+
+    await get_saved_tracks(limit=10, offset=20)
+
+    assert route.calls.last.request.url.params["offset"] == "20"
+
+
+@respx.mock
 async def test_save_tracks_raises_spotify_api_error_with_message(logged_in) -> None:
     # Found by testing against a real account: PUT /me/tracks returns a
     # bare 403 "Forbidden" — Spotify restricts modifying Liked Songs to

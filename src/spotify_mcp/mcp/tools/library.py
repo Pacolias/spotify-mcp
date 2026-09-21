@@ -9,10 +9,12 @@ from spotify_mcp.spotify.client import (
 
 
 @mcp_server.tool()
-async def liked_songs(limit: int = 20) -> str:
-    """List the user's saved ("Liked Songs") tracks."""
+async def liked_songs(limit: int = 20, offset: int = 0) -> str:
+    """List the user's saved ("Liked Songs") tracks. limit is capped at 50
+    by Spotify — pass a higher offset in a follow-up call to page through
+    more (the user may have hundreds or thousands of saved tracks)."""
     try:
-        results = await get_saved_tracks(limit=limit)
+        results = await get_saved_tracks(limit=limit, offset=offset)
     except NotAuthenticatedError as exc:
         return str(exc)
 

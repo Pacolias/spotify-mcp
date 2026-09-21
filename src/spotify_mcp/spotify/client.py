@@ -284,8 +284,9 @@ async def seek_to_position(position_ms: int) -> None:
     _raise_for_playback_error(response)
 
 
-async def get_saved_tracks(limit: int = 20) -> list[dict]:
-    response = await _get("/me/tracks", params={"limit": limit})
+async def get_saved_tracks(limit: int = 20, offset: int = 0) -> list[dict]:
+    # Spotify caps limit at 50 per call; page through with offset for more.
+    response = await _get("/me/tracks", params={"limit": limit, "offset": offset})
     response.raise_for_status()
     items = response.json()["items"]
     return [

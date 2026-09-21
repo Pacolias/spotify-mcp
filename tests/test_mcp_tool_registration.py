@@ -19,3 +19,11 @@ async def test_every_resource_has_a_non_empty_description() -> None:
     assert resources or templates, "expected at least one registered resource"
     for resource in [*resources, *templates]:
         assert resource.description, f"resource '{resource.name}' has no description"
+
+
+async def test_every_prompt_has_a_non_empty_description() -> None:
+    prompts = await mcp_server.list_prompts()
+
+    assert prompts, "expected at least one registered prompt"
+    for prompt in prompts:
+        assert prompt.description, f"prompt '{prompt.name}' has no description"

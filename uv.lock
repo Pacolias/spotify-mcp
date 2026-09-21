@@ -780,6 +780,7 @@ dependencies = [
     { name = "mcp", extra = ["cli"] },
     { name = "pydantic-settings" },
     { name = "sqlmodel" },
+    { name = "typer" },
     { name = "uvicorn", extra = ["standard"] },
 ]
 
@@ -797,6 +798,7 @@ requires-dist = [
     { name = "mcp", extras = ["cli"], specifier = ">=2.2.0" },
     { name = "pydantic-settings", specifier = ">=2.15.0" },
     { name = "sqlmodel", specifier = ">=0.0.44" },
+    { name = "typer", specifier = ">=0.27.2" },
     { name = "uvicorn", extras = ["standard"], specifier = ">=0.53.0" },
 ]
 

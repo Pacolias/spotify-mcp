@@ -82,7 +82,15 @@ uv run spotify-mcp login      # opens your browser, log in once
 
 **`SPOTIFY_CLIENT_ID`**: [create a Spotify app](https://developer.spotify.com/dashboard) → add `http://127.0.0.1:8000/auth/callback` as a Redirect URI → check **Web API** → copy the Client ID (no secret needed, this uses PKCE) → paste into `.env`.
 
-**Point your MCP host at it** — for Claude Desktop / Claude Code, add:
+**Register it with your MCP host:**
+
+**Claude Code** — from the repo root:
+
+```bash
+claude mcp add spotify-mcp -- uv run --directory "$(pwd)" spotify-mcp
+```
+
+**Other hosts** (Claude Desktop, etc.) — add to the host's MCP config:
 
 ```json
 {

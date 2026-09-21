@@ -12,3 +12,4 @@ Chronological log of architecture decisions and notable findings for `spotify-mc
 8. [MCP SDK API drift: `FastMCP` → `MCPServer`, and mounting gotcha](08-mcp-sdk-api-drift-and-mounting-gotcha.md)
 9. [Spotify OAuth2 PKCE flow implemented](09-spotify-oauth-pkce-implemented.md)
 10. [First two MCP tools: `search_track` and `now_playing`](10-first-mcp-tools-search-and-playback.md)
+11. [Test suite: pytest + pytest-asyncio + respx](11-test-suite.md)

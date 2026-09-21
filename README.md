@@ -65,3 +65,11 @@ Open `http://127.0.0.1:8000/auth/login` in a browser and approve access. This on
 **6. Connect an MCP client**
 
 Point any streamable-HTTP-compatible MCP client at `http://127.0.0.1:8000/mcp-server/mcp`.
+
+## Testing
+
+```bash
+uv run pytest
+```
+
+Tests run against an isolated, throwaway SQLite database and mocked Spotify API responses — they never touch a real Spotify account or the local `spotify_mcp.db`. See [journal entry 11](journal/11-test-suite.md) for details.

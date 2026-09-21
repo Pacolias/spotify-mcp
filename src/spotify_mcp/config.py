@@ -25,7 +25,8 @@ class Settings(BaseSettings):
         "playlist-modify-public "
         "user-modify-playback-state "
         "user-library-read "
-        "user-library-modify"
+        "user-library-modify "
+        "user-read-playback-state"
     )
 
     database_url: str = "sqlite:///./spotify_mcp.db"

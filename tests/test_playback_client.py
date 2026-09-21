@@ -1,3 +1,5 @@
+import json
+
 import httpx
 import pytest
 import respx
@@ -6,6 +8,7 @@ from spotify_mcp.spotify.client import (
     SPOTIFY_API_BASE,
     SpotifyPlaybackError,
     add_to_queue,
+    get_devices,
     pause_playback,
     resume_playback,
     seek_to_position,
@@ -14,6 +17,7 @@ from spotify_mcp.spotify.client import (
     set_volume,
     skip_to_next,
     skip_to_previous,
+    transfer_playback,
 )
 
 
@@ -128,3 +132,47 @@ async def test_seek_to_position_sends_position_param(logged_in) -> None:
     await seek_to_position(5000)
 
     assert route.calls.last.request.url.params["position_ms"] == "5000"
+
+
+@respx.mock
+async def test_get_devices_parses_results(logged_in) -> None:
+    respx.get(f"{SPOTIFY_API_BASE}/me/player/devices").mock(
+        return_value=httpx.Response(
+            200,
+            json={
+                "devices": [
+                    {
+                        "id": "d1",
+                        "name": "My Laptop",
+                        "type": "Computer",
+                        "is_active": True,
+                        "volume_percent": 80,
+                    }
+                ]
+            },
+        )
+    )
+
+    results = await get_devices()
+
+    assert results == [
+        {
+            "id": "d1",
+            "name": "My Laptop",
+            "type": "Computer",
+            "is_active": True,
+            "volume_percent": 80,
+        }
+    ]
+
+
+@respx.mock
+async def test_transfer_playback_sends_device_ids_and_play(logged_in) -> None:
+    route = respx.put(f"{SPOTIFY_API_BASE}/me/player").mock(return_value=httpx.Response(204))
+
+    await transfer_playback("d1", play=True)
+
+    assert json.loads(route.calls.last.request.content) == {
+        "device_ids": ["d1"],
+        "play": True,
+    }

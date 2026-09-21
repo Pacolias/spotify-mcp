@@ -10,11 +10,12 @@ def _utcnow() -> datetime:
     # compare naive and aware datetimes. Keeping everything naive-but-UTC
     # avoids that mismatch.
     return datetime.now(UTC).replace(tzinfo=None)
+import asyncio
 from urllib.parse import urlencode
 
 import httpx
 from fastapi import APIRouter, HTTPException
-from fastapi.responses import RedirectResponse
+from fastapi.responses import HTMLResponse, RedirectResponse
 from sqlmodel import Session
 
 from spotify_mcp.config import settings
@@ -31,6 +32,22 @@ SPOTIFY_TOKEN_URL = "https://accounts.spotify.com/api/token"
 # fine for a single-user, single-process app; a multi-worker deployment
 # would need a shared store (DB/Redis) instead.
 _pending_logins: dict[str, str] = {}
+
+# Set once a login round-trip finishes successfully. Lets `spotify-mcp login`
+# (spotify_mcp/cli.py) know it can stop waiting and shut the server down,
+# instead of the user having to notice success and Ctrl+C manually.
+login_complete = asyncio.Event()
+
+_SUCCESS_PAGE = """\
+<!doctype html>
+<html>
+  <head><title>spotify-mcp</title></head>
+  <body style="font-family: system-ui, sans-serif; text-align: center; padding-top: 4rem;">
+    <h1>✅ Logged in to Spotify</h1>
+    <p>You can close this tab and go back to your terminal.</p>
+  </body>
+</html>
+"""
 
 
 class NotAuthenticatedError(Exception):
@@ -70,7 +87,7 @@ def login() -> RedirectResponse:
 @router.get("/callback")
 async def callback(
     code: str | None = None, state: str | None = None, error: str | None = None
-) -> dict[str, str]:
+) -> HTMLResponse:
     """Spotify redirects here after the user approves (or denies) access.
     Exchanges the authorization code for an access/refresh token pair."""
     if error:
@@ -107,7 +124,8 @@ async def callback(
         session.merge(token)
         session.commit()
 
-    return {"status": "logged in", "scope": token.scope}
+    login_complete.set()
+    return HTMLResponse(_SUCCESS_PAGE)
 
 
 async def _refresh(token: SpotifyToken, session: Session) -> SpotifyToken:

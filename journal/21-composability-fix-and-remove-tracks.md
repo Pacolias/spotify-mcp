@@ -1,0 +1,11 @@
+# Composability fix: expose track IDs everywhere, add remove_tracks
+
+**Date:** 2026-09-22
+
+Triggered by a concrete use case: "split this playlist in two." That request doesn't need a bespoke `split_playlist` tool — it should already be achievable by combining existing primitives (`playlist_tracks`, `create_user_playlist`, `add_tracks`). Checked live whether it actually was, and it wasn't: `playlist_tracks`' output formatted only `name — artists`, silently dropping the track `id`. `add_tracks` requires `track_ids`, so the model had no way to act on what it had just listed. Same gap existed in `search_track`.
+
+Fixed both to include `id: <track_id>` in their output, consistent with how `list_user_playlists`, `create_user_playlist`, and `top_tracks` already did. General principle worth naming: an MCP tool that returns something meant to be fed into another tool has to expose whatever identifier that other tool needs — dropping it in the name of "cleaner" formatted output silently breaks composability, and nothing surfaces the break until a multi-step request like this one is attempted. Added `tests/test_playlist_tools_formatting.py` specifically to guard tool-*output* shape (not just the underlying client function, which was already correct and already tested) — this class of bug lives entirely in the formatting layer.
+
+Also added `remove_tracks` (client `remove_tracks_from_playlist` + MCP tool), rounding out playlist CRUD (create/read/add existed; remove didn't). Its DELETE endpoint was checked against the real API rather than assumed, using a disposable test playlist (created, mutated, verified, deleted — same pattern as previous playlist testing): the request body shape does **not** match `add_tracks`' `{"uris": [...]}` — that 400s with `"No uris provided"` on the DELETE endpoint. The working shape is `{"items": [{"uri": "spotify:track:..."}, ...]}`. Undocumented anywhere found; discovered by trying variants against the real API until one worked.
+
+Verified end-to-end through a real MCP client: created a throwaway playlist, searched a track (now returning its id), added it, listed the playlist's tracks (now showing the id), removed it via `remove_tracks`, confirmed the playlist was empty again, then deleted the test playlist.

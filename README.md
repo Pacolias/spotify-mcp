@@ -61,6 +61,7 @@ graph TD
 | `playlist_tracks` | List the tracks in a playlist. |
 | `create_user_playlist` | Create a new playlist. |
 | `add_tracks` | Add one or more tracks to a playlist. |
+| `remove_tracks` | Remove one or more tracks from a playlist. |
 | `pause` | Pause playback on the active device. |
 | `resume` | Resume/start playback on the active device. |
 | `skip_next` | Skip to the next track. |

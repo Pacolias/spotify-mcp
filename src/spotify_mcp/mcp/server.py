@@ -13,4 +13,11 @@ def ping() -> str:
 # -decorated functions above. Must stay at the bottom: each module imports
 # `mcp_server` from this file, so it needs to already be defined first.
 from spotify_mcp.mcp import resources  # noqa: E402, F401
-from spotify_mcp.mcp.tools import playback, personal, playlists, search, youtube  # noqa: E402, F401
+from spotify_mcp.mcp.tools import (  # noqa: E402, F401
+    library,
+    playback,
+    personal,
+    playlists,
+    search,
+    youtube,
+)

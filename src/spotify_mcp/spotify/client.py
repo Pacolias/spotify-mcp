@@ -27,11 +27,13 @@ async def _put(path: str, params: dict | None = None) -> httpx.Response:
         return await client.put(path, params=params, headers={"Authorization": f"Bearer {token}"})
 
 
-async def _delete(path: str, json: dict | None = None) -> httpx.Response:
+async def _delete(
+    path: str, json: dict | None = None, params: dict | None = None
+) -> httpx.Response:
     token = await get_valid_access_token()
     async with httpx.AsyncClient(base_url=SPOTIFY_API_BASE) as client:
         request = client.build_request(
-            "DELETE", path, json=json, headers={"Authorization": f"Bearer {token}"}
+            "DELETE", path, json=json, params=params, headers={"Authorization": f"Bearer {token}"}
         )
         return await client.send(request)
 
@@ -276,3 +278,47 @@ async def set_repeat_mode(mode: str) -> None:
 async def seek_to_position(position_ms: int) -> None:
     response = await _put("/me/player/seek", params={"position_ms": position_ms})
     _raise_for_playback_error(response)
+
+
+async def get_saved_tracks(limit: int = 20) -> list[dict]:
+    response = await _get("/me/tracks", params={"limit": limit})
+    response.raise_for_status()
+    items = response.json()["items"]
+    return [
+        {
+            "id": entry["track"]["id"],
+            "name": entry["track"]["name"],
+            "artists": [artist["name"] for artist in entry["track"]["artists"]],
+            "album": entry["track"]["album"]["name"],
+            "url": entry["track"]["external_urls"]["spotify"],
+        }
+        for entry in items
+    ]
+
+
+class SpotifyAPIError(Exception):
+    """Raised for a failed write call, with Spotify's own error message
+    instead of a raw HTTP status. Some write endpoints — like this one, see
+    save_tracks below — return a bare 403 "Forbidden" for apps without
+    Spotify's "Extended Quota Mode" approval, distinct from a scope error;
+    that message is worth surfacing verbatim rather than a stacktrace."""
+
+
+def _raise_for_api_error(response: httpx.Response) -> None:
+    if response.is_success:
+        return
+    try:
+        message = response.json()["error"]["message"]
+    except Exception:
+        message = response.text or f"HTTP {response.status_code}"
+    raise SpotifyAPIError(message)
+
+
+async def save_tracks(track_ids: list[str]) -> None:
+    response = await _put("/me/tracks", params={"ids": ",".join(track_ids)})
+    _raise_for_api_error(response)
+
+
+async def remove_saved_tracks(track_ids: list[str]) -> None:
+    response = await _delete("/me/tracks", params={"ids": ",".join(track_ids)})
+    _raise_for_api_error(response)

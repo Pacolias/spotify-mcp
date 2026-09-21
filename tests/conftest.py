@@ -1,8 +1,12 @@
+from datetime import timedelta
+
 import pytest
-from sqlmodel import SQLModel, create_engine
+from sqlmodel import Session, SQLModel, create_engine
 
 import spotify_mcp.db.session as db_session
 import spotify_mcp.spotify.auth as auth_module
+from spotify_mcp.db.models import SpotifyToken
+from spotify_mcp.spotify.auth import _utcnow
 
 
 @pytest.fixture
@@ -19,3 +23,20 @@ def db_engine(tmp_path, monkeypatch):
     monkeypatch.setattr(auth_module, "engine", engine)
 
     return engine
+
+
+@pytest.fixture
+def logged_in(db_engine) -> None:
+    """Seeds a valid (non-expiring-soon) token, as if /auth/login had already
+    completed, for tests that call Spotify-API-backed code."""
+    with Session(db_engine) as session:
+        session.add(
+            SpotifyToken(
+                id=1,
+                access_token="test-access-token",
+                refresh_token="test-refresh-token",
+                expires_at=_utcnow() + timedelta(hours=1),
+                scope="user-read-currently-playing",
+            )
+        )
+        session.commit()

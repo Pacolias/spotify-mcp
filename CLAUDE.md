@@ -8,6 +8,7 @@ Servidor MCP (Model Context Protocol) para interactuar con la API de Spotify.
 - **Ninguna decisión de arquitectura se toma en silencio.** Elección de librerías, estructura de carpetas, patrones de diseño, cómo se maneja la autenticación con Spotify, cómo se exponen las tools/resources del MCP, etc. — todo eso se discute con el usuario antes de implementarlo. Nada de decidir por mi cuenta y presentar el resultado ya hecho.
 - **Commits atómicos.** Cada commit debe corresponder a una sola cosa (una feature pequeña, un fix, un paso concreto). Nada de commits gigantes que mezclen varios cambios sin relación.
 - **`README.md` como diario de ingeniería, en inglés.** Todas las decisiones importantes (de arquitectura y de cualquier otro tipo) se van documentando ahí, según se toman — está pensado para que lo lea un Tech Lead evaluando el proyecto. Se actualiza de forma continua, no al final.
+- **Push periódico a `origin` en puntos estables.** No hace falta pedir permiso cada vez: cuando se llega a un punto estable (algo que funciona de extremo a extremo, ya probado), se puede hacer `git push` sin preguntar primero. No es "cada commit", es de vez en cuando, en checkpoints con sentido.
 
 ## Stack
 

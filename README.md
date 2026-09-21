@@ -106,6 +106,8 @@ Quick-access templates a host can surface to kick off a workflow.
 | `build_playlist` | Build a themed playlist using the model's own music knowledge (not generic search phrases). |
 | `listening_recap` | A friendly summary of current listening, via the dashboard resource. |
 | `import_youtube_mix` | Import a YouTube video's tracklist into a new playlist. |
+| `start_listening` | Get music playing — check what's active, or help pick a device if nothing is. |
+| `curate_from_liked` | Build a new playlist from a themed subset of the user's Liked Songs. |
 
 ## Setup
 

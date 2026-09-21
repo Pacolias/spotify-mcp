@@ -52,6 +52,23 @@ async def search_tracks(query: str, limit: int = 5) -> list[dict]:
     ]
 
 
+async def search_playlists(query: str, limit: int = 5) -> list[dict]:
+    response = await _get("/search", params={"q": query, "type": "playlist", "limit": limit})
+    response.raise_for_status()
+    items = response.json()["playlists"]["items"]
+    return [
+        {
+            "id": item["id"],
+            "name": item["name"],
+            "owner": item["owner"]["display_name"],
+            "description": item.get("description") or "",
+            "url": item["external_urls"]["spotify"],
+        }
+        for item in items
+        if item  # Spotify's playlist search sometimes includes null entries
+    ]
+
+
 async def get_currently_playing() -> dict | None:
     response = await _get("/me/player/currently-playing")
     if response.status_code == 204:

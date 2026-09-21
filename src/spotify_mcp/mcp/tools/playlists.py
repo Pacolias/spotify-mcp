@@ -1,3 +1,5 @@
+import re
+
 from spotify_mcp.mcp.server import mcp_server
 from spotify_mcp.spotify.auth import NotAuthenticatedError
 from spotify_mcp.spotify.client import (
@@ -6,7 +8,10 @@ from spotify_mcp.spotify.client import (
     get_playlist_tracks,
     list_playlists,
     remove_tracks_from_playlist,
+    search_playlists,
 )
+
+_HTML_TAG = re.compile(r"<[^>]+>")
 
 
 @mcp_server.tool()
@@ -77,3 +82,25 @@ async def remove_tracks(playlist_id: str, track_ids: list[str]) -> str:
         return str(exc)
 
     return f"Removed {len(track_ids)} track(s) from playlist {playlist_id}."
+
+
+@mcp_server.tool()
+async def find_playlists(query: str, limit: int = 5) -> str:
+    """Search Spotify for existing curated playlists matching a query (e.g.
+    'lofi coding beats'). Use this to recommend/discover an existing
+    playlist. Note: tracks inside a playlist you don't own can't be read via
+    this API (only its name/description/owner) — playlist_tracks only works
+    on your own playlists."""
+    try:
+        results = await search_playlists(query, limit=limit)
+    except NotAuthenticatedError as exc:
+        return str(exc)
+
+    if not results:
+        return f"No playlists found for '{query}'."
+
+    return "\n".join(
+        f"{p['name']} — by {p['owner']} — id: {p['id']} — {p['url']}\n"
+        f"  {_HTML_TAG.sub('', p['description']).strip()}"
+        for p in results
+    )

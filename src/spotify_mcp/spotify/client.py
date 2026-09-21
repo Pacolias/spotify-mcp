@@ -11,6 +11,12 @@ async def _get(path: str, params: dict | None = None) -> httpx.Response:
         return await client.get(path, params=params, headers={"Authorization": f"Bearer {token}"})
 
 
+async def _post(path: str, json: dict) -> httpx.Response:
+    token = await get_valid_access_token()
+    async with httpx.AsyncClient(base_url=SPOTIFY_API_BASE) as client:
+        return await client.post(path, json=json, headers={"Authorization": f"Bearer {token}"})
+
+
 async def search_tracks(query: str, limit: int = 5) -> list[dict]:
     response = await _get("/search", params={"q": query, "type": "track", "limit": limit})
     response.raise_for_status()
@@ -96,3 +102,65 @@ async def get_recently_played(limit: int = 10) -> list[dict]:
         }
         for entry in items
     ]
+
+
+async def list_playlists(limit: int = 20) -> list[dict]:
+    response = await _get("/me/playlists", params={"limit": limit})
+    response.raise_for_status()
+    items = response.json()["items"]
+    return [
+        {
+            "id": item["id"],
+            "name": item["name"],
+            # Spotify's playlist object nests this under "items", not the
+            # "tracks" key the older docs describe — found by checking the
+            # real response, not assumed.
+            "track_count": item["items"]["total"],
+            "public": item["public"],
+            "url": item["external_urls"]["spotify"],
+        }
+        for item in items
+    ]
+
+
+async def get_playlist_tracks(playlist_id: str, limit: int = 50) -> list[dict]:
+    # The sub-resource endpoint is /items, not /tracks (which now 403s), and
+    # each entry's track fields live directly under "item", not "item.track".
+    # Both found by checking the real response, not assumed from docs.
+    response = await _get(f"/playlists/{playlist_id}/items", params={"limit": limit})
+    response.raise_for_status()
+    items = response.json()["items"]
+    return [
+        {
+            "id": entry["item"]["id"],
+            "name": entry["item"]["name"],
+            "artists": [artist["name"] for artist in entry["item"]["artists"]],
+            "url": entry["item"]["external_urls"]["spotify"],
+        }
+        for entry in items
+        if entry.get("item")
+    ]
+
+
+async def create_playlist(name: str, description: str = "", public: bool = False) -> dict:
+    me = await _get("/me")
+    me.raise_for_status()
+    user_id = me.json()["id"]
+
+    response = await _post(
+        f"/users/{user_id}/playlists",
+        json={"name": name, "description": description, "public": public},
+    )
+    response.raise_for_status()
+    payload = response.json()
+    return {
+        "id": payload["id"],
+        "name": payload["name"],
+        "url": payload["external_urls"]["spotify"],
+    }
+
+
+async def add_tracks_to_playlist(playlist_id: str, track_ids: list[str]) -> None:
+    uris = [f"spotify:track:{track_id}" for track_id in track_ids]
+    response = await _post(f"/playlists/{playlist_id}/tracks", json={"uris": uris})
+    response.raise_for_status()

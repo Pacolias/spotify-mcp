@@ -14,5 +14,9 @@ class Settings(BaseSettings):
 
     database_url: str = "sqlite:///./spotify_mcp.db"
 
+    # Required bearer token for calling the MCP endpoint (/mcp-server/*),
+    # since it's reachable over the network now that the transport is HTTP.
+    mcp_bearer_token: str
+
 
 settings = Settings()

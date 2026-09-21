@@ -4,10 +4,11 @@ from fastapi import FastAPI
 
 from spotify_mcp.config import settings
 from spotify_mcp.db.session import init_db
+from spotify_mcp.mcp.auth import BearerTokenMiddleware
 from spotify_mcp.mcp.server import mcp_server
 from spotify_mcp.spotify.auth import router as auth_router
 
-mcp_asgi_app = mcp_server.streamable_http_app()
+mcp_asgi_app = BearerTokenMiddleware(mcp_server.streamable_http_app(), token=settings.mcp_bearer_token)
 
 
 @asynccontextmanager

@@ -1,1 +1,13 @@
 .claude
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+
+# env / secrets
+.env
+
+# local sqlite db
+*.db
+*.sqlite3

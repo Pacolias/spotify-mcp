@@ -13,3 +13,4 @@ Chronological log of architecture decisions and notable findings for `spotify-mc
 9. [Spotify OAuth2 PKCE flow implemented](09-spotify-oauth-pkce-implemented.md)
 10. [First two MCP tools: `search_track` and `now_playing`](10-first-mcp-tools-search-and-playback.md)
 11. [Test suite: pytest + pytest-asyncio + respx](11-test-suite.md)
+12. [Deployment target: Render, plus bearer-token auth on the MCP endpoint](12-deployment-plan-and-mcp-bearer-auth.md)

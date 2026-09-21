@@ -26,3 +26,4 @@ Chronological log of architecture decisions and notable findings for `spotify-mc
 22. [Added MCP resources: now-playing, playlists, playlist/{id}](22-mcp-resources.md)
 23. [`find_playlists`, and a hard limit: can't read tracks of playlists you don't own](23-find-playlists-and-playlist-track-access-limit.md)
 24. [`import_youtube_playlist`: build a Spotify playlist from a YouTube video's tracklist](24-youtube-playlist-import.md)
+25. [Shuffle/repeat/seek, Liked Songs, and friendly playback/API error messages](25-shuffle-repeat-seek-and-liked-songs.md)

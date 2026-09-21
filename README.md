@@ -56,4 +56,14 @@ Verified end-to-end with a real MCP client (`mcp.client.streamable_http`), not j
 - Tokens are stored as a single fixed row (`id=1`) in the `spotifytoken` SQLite table via `session.merge()` (upsert by primary key) — consistent with the single-user design.
 - `get_valid_access_token()` is the one function every Spotify-calling tool will use: it returns a token from the DB, transparently refreshing it first if it's within 30 seconds of expiring. Raises a custom `NotAuthenticatedError` (not an HTTP exception) if no login has happened yet, since it's meant to be called from MCP tool code, not just FastAPI routes.
 
-Verified with a live request that `/auth/login` builds a correctly-formed redirect to Spotify's `/authorize` endpoint with all required PKCE params. The full round trip (actually logging in through the browser and completing `/auth/callback`) needs a human in the loop — can't be automated from here.
+Verified with a live request that `/auth/login` builds a correctly-formed redirect to Spotify's `/authorize` endpoint with all required PKCE params. The full round trip (actually logging in through the browser and completing `/auth/callback`) needs a human in the loop — can't be automated from here. Confirmed working against a real Spotify account.
+
+Bug found and fixed while testing: SQLite has no timezone-aware datetime type, so a tz-aware `expires_at` written on login came back **naive** on read, and Python refuses to compare a naive and an aware datetime (`TypeError`). Fixed by working in naive-but-UTC datetimes consistently everywhere in `auth.py`.
+
+### 2026-09-21 — First two MCP tools: `search_track` and `now_playing`
+
+`src/spotify_mcp/spotify/client.py` wraps the two Spotify Web API calls (`GET /search`, `GET /me/player/currently-playing`) with `httpx`, using `get_valid_access_token()` for auth. `src/spotify_mcp/mcp/tools/search.py` and `.../playback.py` expose them as MCP tools (`search_track`, `now_playing`), registered by importing those modules at the bottom of `mcp/server.py` (after `mcp_server` is defined, to avoid a circular import).
+
+Both tools return a formatted string rather than structured JSON — more directly useful for an LLM client to read and relay, and simple enough not to need a richer schema yet for just two read-only tools.
+
+Verified end-to-end through a real MCP client, against a live Spotify account: `search_track` returns real catalog results, `now_playing` correctly returns "nothing playing" when idle and real track data when something is playing on the account.

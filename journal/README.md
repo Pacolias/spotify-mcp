@@ -21,3 +21,4 @@ Chronological log of architecture decisions and notable findings for `spotify-mc
 17. [Reversed decision: MCP transport switched from streamable HTTP to stdio](17-switch-to-stdio-transport.md)
 18. [`spotify-mcp login`: one-command Spotify login](18-cli-login-command.md)
 19. [Registration via `claude mcp add` instead of manual JSON editing](19-claude-code-registration.md)
+20. [Friendly startup errors instead of raw pydantic stacktraces](20-friendly-startup-errors.md)

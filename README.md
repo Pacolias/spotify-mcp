@@ -10,10 +10,41 @@ This is a portfolio project. The reasoning behind every architecture decision �
 
 This project is one such server, exposing tools backed by the Spotify Web API. It's a single FastAPI application with two things mounted into it:
 
-- **The MCP server itself**, served over streamable HTTP at `/mcp-server/mcp`. Any MCP-compatible client can connect there, list the available tools, and call them.
-- **A Spotify OAuth2 (Authorization Code + PKCE) login flow**, at `/auth/login` and `/auth/callback`. Spotify data (like "what's currently playing") is user-specific, so the server needs a logged-in user's access token to call the Spotify API on their behalf. PKCE means no client secret has to be kept — the flow is safe to run entirely from a public client.
+- **The MCP server itself**, served over streamable HTTP at `/mcp-server/mcp`, guarded by a bearer token (any MCP-compatible client needs `Authorization: Bearer <token>` to connect, list tools, or call them — it's a network-reachable endpoint now that the transport is HTTP).
+- **A Spotify OAuth2 (Authorization Code + PKCE) login flow**, at `/auth/login` and `/auth/callback`, not behind the bearer token — these are reached by the user's browser, not an MCP client, and are already gated by Spotify's own login screen. Spotify data (like "what's currently playing") is user-specific, so the server needs a logged-in user's access token to call the Spotify API on their behalf. PKCE means no client secret has to be kept.
 
 Once logged in, the server stores the access/refresh token pair in a small SQLite database, and transparently refreshes the access token when it's close to expiring.
+
+```mermaid
+graph TD
+    MC["MCP Client<br/>(e.g. Claude)"]
+    Browser["User's Browser"]
+
+    subgraph App["FastAPI app"]
+        Bearer["Bearer token middleware"]
+        MCPServer["MCP server<br/>/mcp-server/mcp (streamable HTTP)"]
+        Tools["MCP tools<br/>search, now_playing, top_tracks, ..."]
+        AuthRoutes["/auth/login, /auth/callback<br/>(OAuth2 + PKCE)"]
+    end
+
+    SpotifyClient["Spotify client (httpx)"]
+    DB[("SQLite<br/>spotify_mcp.db")]
+    SpotifyAPI["api.spotify.com"]
+    SpotifyAuth["accounts.spotify.com"]
+
+    MC -->|"Authorization: Bearer token"| Bearer
+    Bearer --> MCPServer
+    MCPServer --> Tools
+    Tools --> SpotifyClient
+
+    Browser --> AuthRoutes
+    AuthRoutes -->|"redirect + code"| SpotifyAuth
+    SpotifyAuth -->|"redirect back"| AuthRoutes
+    AuthRoutes -->|"store token"| DB
+
+    SpotifyClient -->|"read / refresh token"| DB
+    SpotifyClient -->|"Authorization: Bearer access_token"| SpotifyAPI
+```
 
 ### Available tools
 
@@ -22,6 +53,9 @@ Once logged in, the server stores the access/refresh token pair in a small SQLit
 | `ping` | Health check — confirms the MCP server is reachable. |
 | `search_track` | Search Spotify's catalog for tracks matching a query. |
 | `now_playing` | Get the track currently playing on the logged-in user's account, if any. |
+| `top_tracks` | Get the user's most-listened-to tracks (short/medium/long term). |
+| `top_artists` | Get the user's most-listened-to artists (short/medium/long term). |
+| `recently_played` | Get the user's most recently played tracks. |
 
 ## Setup
 

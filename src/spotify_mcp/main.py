@@ -3,6 +3,7 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 
 from spotify_mcp.config import settings
+from spotify_mcp.db.session import init_db
 from spotify_mcp.mcp.server import mcp_server
 
 mcp_asgi_app = mcp_server.streamable_http_app()
@@ -10,6 +11,7 @@ mcp_asgi_app = mcp_server.streamable_http_app()
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    init_db()
     # The MCP session manager runs its own task group for streamable HTTP
     # sessions. FastAPI's `app.mount()` does not forward lifespan events to
     # sub-apps, so it has to be started explicitly here, or every MCP request

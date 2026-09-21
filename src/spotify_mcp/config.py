@@ -12,5 +12,7 @@ class Settings(BaseSettings):
     # privilege) and grows as we add tools that need more Spotify permissions.
     spotify_scopes: str = "user-read-currently-playing"
 
+    database_url: str = "sqlite:///./spotify_mcp.db"
+
 
 settings = Settings()

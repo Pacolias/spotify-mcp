@@ -9,6 +9,7 @@ from spotify_mcp.spotify.client import (
     create_playlist,
     get_playlist_tracks,
     list_playlists,
+    remove_tracks_from_playlist,
 )
 
 
@@ -118,4 +119,23 @@ async def test_add_tracks_to_playlist_posts_to_items(logged_in) -> None:
 
     assert json.loads(route.calls.last.request.content) == {
         "uris": ["spotify:track:t1", "spotify:track:t2"]
+    }
+
+
+@respx.mock
+async def test_remove_tracks_from_playlist_deletes_with_items_shape(logged_in) -> None:
+    # The DELETE body shape doesn't match POST's {"uris": [...]} — found by
+    # trial against the real API (see journal). {"uris": [...]} 400s here;
+    # the working shape is {"items": [{"uri": "..."}]}.
+    route = respx.delete(f"{SPOTIFY_API_BASE}/playlists/p1/items").mock(
+        return_value=httpx.Response(200, json={"snapshot_id": "abc"})
+    )
+
+    await remove_tracks_from_playlist("p1", ["t1", "t2"])
+
+    assert json.loads(route.calls.last.request.content) == {
+        "items": [
+            {"uri": "spotify:track:t1"},
+            {"uri": "spotify:track:t2"},
+        ]
     }

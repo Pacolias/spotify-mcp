@@ -10,6 +10,7 @@ from spotify_mcp.spotify.client import (
     get_playlist_tracks,
     list_playlists,
     remove_tracks_from_playlist,
+    search_playlists,
 )
 
 
@@ -139,3 +140,40 @@ async def test_remove_tracks_from_playlist_deletes_with_items_shape(logged_in) -
             {"uri": "spotify:track:t2"},
         ]
     }
+
+
+@respx.mock
+async def test_search_playlists_parses_results_and_skips_null_entries(logged_in) -> None:
+    # Spotify's playlist search sometimes includes null entries in the items
+    # array — found by observing it in a real response.
+    respx.get(f"{SPOTIFY_API_BASE}/search").mock(
+        return_value=httpx.Response(
+            200,
+            json={
+                "playlists": {
+                    "items": [
+                        None,
+                        {
+                            "id": "p1",
+                            "name": "Lofi Coding",
+                            "owner": {"display_name": "Someone"},
+                            "description": "chill beats",
+                            "external_urls": {"spotify": "https://open.spotify.com/playlist/p1"},
+                        },
+                    ]
+                }
+            },
+        )
+    )
+
+    results = await search_playlists("lofi coding")
+
+    assert results == [
+        {
+            "id": "p1",
+            "name": "Lofi Coding",
+            "owner": "Someone",
+            "description": "chill beats",
+            "url": "https://open.spotify.com/playlist/p1",
+        }
+    ]

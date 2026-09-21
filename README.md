@@ -6,7 +6,7 @@ This is a portfolio project. The reasoning behind every architecture decision �
 
 ## How it works
 
-[MCP](https://modelcontextprotocol.io/) is an open protocol that lets an AI client (like Claude) talk to external tools and data sources through a standard interface, instead of custom one-off integrations. A client connects to a server, and the server exposes two kinds of things: **tools** — functions the model actively decides to call, with a name, description, and typed schema generated from the function's signature and docstring — and **resources** — read-only, URI-addressed data (e.g. `spotify://me/now-playing`) meant to be listed and attached to context more like a referenced document than an invoked action.
+[MCP](https://modelcontextprotocol.io/) is an open protocol that lets an AI client (like Claude) talk to external tools and data sources through a standard interface, instead of custom one-off integrations. A client connects to a server, and the server exposes three kinds of things: **tools** — functions the model actively decides to call, with a name, description, and typed schema generated from the function's signature and docstring; **resources** — read-only, URI-addressed data (e.g. `spotify://me/now-playing`) meant to be listed and attached to context more like a referenced document than an invoked action; and **prompts** — reusable prompt templates the host can surface directly to the user (often as a quick-access menu) that kick off a specific workflow with a pre-written message.
 
 This project is two small, single-purpose local programs:
 
@@ -24,6 +24,7 @@ graph TD
         MCPServer["mcp_server.run()<br/>stdio transport"]
         Tools["MCP tools<br/>search, now_playing, top_tracks, ..."]
         Resources["MCP resources<br/>spotify://me/now-playing, ..."]
+        Prompts["MCP prompts<br/>build_playlist, listening_recap, ..."]
     end
 
     subgraph LoginApp["Login helper (FastAPI, run separately)"]
@@ -38,8 +39,10 @@ graph TD
     Host -->|"spawns as subprocess, stdin/stdout"| MCPServer
     MCPServer --> Tools
     MCPServer --> Resources
+    MCPServer --> Prompts
     Tools --> SpotifyClient
     Resources --> SpotifyClient
+    Prompts -.->|"guides toward"| Tools
 
     Browser --> AuthRoutes
     AuthRoutes -->|"redirect + code"| SpotifyAuth
@@ -93,6 +96,16 @@ Read-only, returned as JSON.
 | `spotify://playlist/{playlist_id}` | The tracks in a specific playlist. |
 | `spotify://me/profile` | Basic profile: id, display name, followers, URL/image. |
 | `spotify://me/dashboard` | One-shot snapshot: now playing, devices, top tracks, recently played. |
+
+### Available prompts
+
+Quick-access templates a host can surface to kick off a workflow.
+
+| Prompt | Description |
+|---|---|
+| `build_playlist` | Build a themed playlist using the model's own music knowledge (not generic search phrases). |
+| `listening_recap` | A friendly summary of current listening, via the dashboard resource. |
+| `import_youtube_mix` | Import a YouTube video's tracklist into a new playlist. |
 
 ## Setup
 

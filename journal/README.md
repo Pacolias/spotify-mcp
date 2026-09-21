@@ -29,3 +29,4 @@ Chronological log of architecture decisions and notable findings for `spotify-mc
 25. [Shuffle/repeat/seek, Liked Songs, and friendly playback/API error messages](25-shuffle-repeat-seek-and-liked-songs.md)
 26. [`list_devices` / `activate_device` — and why "start Spotify from nothing" isn't possible](26-device-listing-and-activation.md)
 27. [`spotify://me/profile` and `spotify://me/dashboard` resources](27-profile-and-dashboard-resources.md)
+28. [Added MCP prompts: the third MCP primitive (build_playlist, listening_recap, import_youtube_mix)](28-mcp-prompts.md)

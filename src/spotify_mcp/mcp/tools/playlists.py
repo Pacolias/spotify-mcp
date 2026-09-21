@@ -27,7 +27,9 @@ async def list_user_playlists(limit: int = 20) -> str:
 
 @mcp_server.tool()
 async def playlist_tracks(playlist_id: str, limit: int = 50) -> str:
-    """List the tracks in a playlist. playlist_id comes from list_user_playlists."""
+    """List the tracks in a playlist, including each track's id (needed by
+    add_tracks / remove_tracks_from_playlist). playlist_id comes from
+    list_user_playlists."""
     try:
         results = await get_playlist_tracks(playlist_id, limit=limit)
     except NotAuthenticatedError as exc:
@@ -36,7 +38,9 @@ async def playlist_tracks(playlist_id: str, limit: int = 50) -> str:
     if not results:
         return "This playlist has no tracks."
 
-    return "\n".join(f"{t['name']} — {', '.join(t['artists'])}" for t in results)
+    return "\n".join(
+        f"{t['name']} — {', '.join(t['artists'])} — id: {t['id']}" for t in results
+    )
 
 
 @mcp_server.tool()

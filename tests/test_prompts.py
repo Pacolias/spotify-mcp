@@ -1,4 +1,10 @@
-from spotify_mcp.mcp.prompts import build_playlist, import_youtube_mix, listening_recap
+from spotify_mcp.mcp.prompts import (
+    build_playlist,
+    curate_from_liked,
+    import_youtube_mix,
+    listening_recap,
+    start_listening,
+)
 
 
 def test_build_playlist_includes_theme_and_song_count() -> None:
@@ -36,3 +42,38 @@ def test_import_youtube_mix_omits_name_clause_when_not_given() -> None:
     result = import_youtube_mix("https://youtube.com/watch?v=abc")
 
     assert "called" not in result
+
+
+def test_start_listening_mentions_key_tools() -> None:
+    result = start_listening()
+
+    assert "now_playing" in result
+    assert "list_devices" in result
+    assert "activate_device" in result
+
+
+def test_start_listening_includes_device_hint_when_given() -> None:
+    result = start_listening(device_hint="fedora")
+
+    assert '"fedora"' in result
+
+
+def test_start_listening_omits_device_hint_when_not_given() -> None:
+    result = start_listening()
+
+    assert "probably mean" not in result
+
+
+def test_curate_from_liked_includes_criteria_and_song_count() -> None:
+    result = curate_from_liked("high energy workout songs", num_songs=12)
+
+    assert '"high energy workout songs"' in result
+    assert "12 tracks" in result
+    assert "liked_songs" in result
+    assert "create_user_playlist" in result
+
+
+def test_curate_from_liked_uses_given_playlist_name() -> None:
+    result = curate_from_liked("chill", playlist_name="Chill Vibes")
+
+    assert '"Chill Vibes"' in result

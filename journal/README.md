@@ -24,3 +24,4 @@ Chronological log of architecture decisions and notable findings for `spotify-mc
 20. [Friendly startup errors instead of raw pydantic stacktraces](20-friendly-startup-errors.md)
 21. [Composability fix: expose track IDs everywhere, add remove_tracks](21-composability-fix-and-remove-tracks.md)
 22. [Added MCP resources: now-playing, playlists, playlist/{id}](22-mcp-resources.md)
+23. [`find_playlists`, and a hard limit: can't read tracks of playlists you don't own](23-find-playlists-and-playlist-track-access-limit.md)

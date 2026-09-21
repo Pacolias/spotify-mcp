@@ -1,0 +1,15 @@
+# `find_playlists`, and a hard limit: can't read tracks of playlists you don't own
+
+**Date:** 2026-09-22
+
+Triggered by "make me a coding playlist." Investigated properly before writing any code:
+
+**The mechanical pipeline already worked** with existing tools (`search_track` → `create_user_playlist` → `add_tracks`), verified live over a real MCP client. But a naive demo using generic mood phrases as track search queries (`"lofi coding beats"`, `"deep focus ambient"`) gave poor, off-topic results (Kanye West and Baby Keem showed up for "coding focus instrumental") — because `search_track` does literal keyword matching against track/artist/album titles, not genre or mood understanding. That's not a bug: it's a sign the *query* needs to come from something with real music knowledge — i.e. the model itself naming actual songs/artists it knows fit the vibe, not a generic descriptive phrase. No tool change needed for that half of the problem.
+
+**Investigated a better path**: Spotify has enormous numbers of curated "lofi coding" playlists (editorial and user-made) that would be a much higher-quality source than track-by-track guessing. Tested `GET /search?type=playlist` — works well, good results (`"Chillhop Lofi Coding Session | Instrumental Focus Beats for Developers"` etc.). But then tested reading tracks *from* one of those playlists (`/playlists/{id}/items`) — `403 Forbidden`, the same bare "Forbidden" (no scope message) pattern as the [entry 13](13-recommendation-endpoints-restricted.md) restriction. Playlist **metadata** (name, description, owner) is readable regardless of ownership; playlist **track contents** are not, unless the playlist belongs to the authenticated user.
+
+Tested a plausible workaround — `PUT /playlists/{id}/followers` (follow the playlist) then retry reading its items — in case ownership-of-library, not ownership-of-creation, was the actual gate. Still `403` after following (and unfollowed again afterward to leave no trace). So this is a hard wall in Development Mode: `playlist_tracks` only ever works on the user's own playlists, full stop — "find a great existing playlist and copy its songs" isn't achievable via this API tier.
+
+**What shipped**: `find_playlists` (client `search_playlists` + MCP tool), for **discovery only** — surfaces name, owner, description, and URL of matching curated playlists, explicitly documented (in the tool's own docstring, so the model sees it) as not being a source of track data. Lets the assistant say "there's already a great playlist for this, here's the link" as a legitimate alternative to building one from scratch. Also strips a stray Spotify quirk found along the way: playlist search descriptions contain raw HTML (`<a href=...>` tags) and the items array sometimes includes `null` entries — both handled (HTML stripped in the tool's formatting, `None` entries filtered in the client).
+
+Verified end-to-end over a real MCP client with a real query, and via a dedicated client-level test (including the null-entry case, reproduced from what was actually observed in a live response, not invented).

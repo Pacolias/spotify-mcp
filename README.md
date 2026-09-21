@@ -65,6 +65,7 @@ graph TD
 | `create_user_playlist` | Create a new playlist. |
 | `add_tracks` | Add one or more tracks to a playlist. |
 | `remove_tracks` | Remove one or more tracks from a playlist. |
+| `find_playlists` | Discover existing curated Spotify playlists matching a query (name/owner/description only — can't read tracks of playlists you don't own). |
 | `pause` | Pause playback on the active device. |
 | `resume` | Resume/start playback on the active device. |
 | `skip_next` | Skip to the next track. |

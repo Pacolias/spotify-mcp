@@ -9,10 +9,11 @@ def ping() -> str:
     return "pong"
 
 
-# Importing these registers their @mcp_server.tool()/@mcp_server.resource()
-# -decorated functions above. Must stay at the bottom: each module imports
-# `mcp_server` from this file, so it needs to already be defined first.
-from spotify_mcp.mcp import resources  # noqa: E402, F401
+# Importing these registers their @mcp_server.tool()/@mcp_server.resource()/
+# @mcp_server.prompt()-decorated functions above. Must stay at the bottom:
+# each module imports `mcp_server` from this file, so it needs to already
+# be defined first.
+from spotify_mcp.mcp import prompts, resources  # noqa: E402, F401
 from spotify_mcp.mcp.tools import (  # noqa: E402, F401
     library,
     playback,

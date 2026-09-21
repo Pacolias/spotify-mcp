@@ -213,31 +213,66 @@ async def remove_tracks_from_playlist(playlist_id: str, track_ids: list[str]) ->
     response.raise_for_status()
 
 
+class SpotifyPlaybackError(Exception):
+    """Raised for a failed playback-control call, with Spotify's own error
+    message (e.g. "Player command failed: No active device found") instead
+    of a raw HTTP status — playback endpoints commonly fail for reasons the
+    caller should see verbatim (no active device, restricted action, ...)."""
+
+
+def _raise_for_playback_error(response: httpx.Response) -> None:
+    if response.is_success:
+        return
+    try:
+        message = response.json()["error"]["message"]
+    except Exception:
+        message = response.text or f"HTTP {response.status_code}"
+    raise SpotifyPlaybackError(message)
+
+
 async def pause_playback() -> None:
     response = await _put("/me/player/pause")
-    response.raise_for_status()
+    _raise_for_playback_error(response)
 
 
 async def resume_playback() -> None:
     response = await _put("/me/player/play")
-    response.raise_for_status()
+    _raise_for_playback_error(response)
 
 
 async def skip_to_next() -> None:
     response = await _post("/me/player/next")
-    response.raise_for_status()
+    _raise_for_playback_error(response)
 
 
 async def skip_to_previous() -> None:
     response = await _post("/me/player/previous")
-    response.raise_for_status()
+    _raise_for_playback_error(response)
 
 
 async def set_volume(volume_percent: int) -> None:
     response = await _put("/me/player/volume", params={"volume_percent": volume_percent})
-    response.raise_for_status()
+    _raise_for_playback_error(response)
 
 
 async def add_to_queue(track_id: str) -> None:
     response = await _post("/me/player/queue", params={"uri": f"spotify:track:{track_id}"})
-    response.raise_for_status()
+    _raise_for_playback_error(response)
+
+
+async def set_shuffle(enabled: bool) -> None:
+    response = await _put(
+        "/me/player/shuffle", params={"state": "true" if enabled else "false"}
+    )
+    _raise_for_playback_error(response)
+
+
+async def set_repeat_mode(mode: str) -> None:
+    # mode: "track", "context" (repeat the playlist/album), or "off".
+    response = await _put("/me/player/repeat", params={"state": mode})
+    _raise_for_playback_error(response)
+
+
+async def seek_to_position(position_ms: int) -> None:
+    response = await _put("/me/player/seek", params={"position_ms": position_ms})
+    _raise_for_playback_error(response)

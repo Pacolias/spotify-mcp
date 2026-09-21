@@ -346,3 +346,16 @@ async def get_devices() -> list[dict]:
 async def transfer_playback(device_id: str, play: bool = True) -> None:
     response = await _put("/me/player", json={"device_ids": [device_id], "play": play})
     _raise_for_playback_error(response)
+
+
+async def get_current_user_profile() -> dict:
+    response = await _get("/me")
+    response.raise_for_status()
+    payload = response.json()
+    return {
+        "id": payload["id"],
+        "display_name": payload.get("display_name"),
+        "followers": payload["followers"]["total"],
+        "url": payload["external_urls"]["spotify"],
+        "image_url": payload["images"][0]["url"] if payload.get("images") else None,
+    }

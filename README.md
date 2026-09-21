@@ -60,6 +60,12 @@ graph TD
 | `playlist_tracks` | List the tracks in a playlist. |
 | `create_user_playlist` | Create a new playlist. |
 | `add_tracks` | Add one or more tracks to a playlist. |
+| `pause` | Pause playback on the active device. |
+| `resume` | Resume/start playback on the active device. |
+| `skip_next` | Skip to the next track. |
+| `skip_previous` | Skip to the previous track. |
+| `set_playback_volume` | Set playback volume (0-100). |
+| `queue_track` | Add a track to the playback queue. |
 
 ## Setup
 

@@ -17,3 +17,4 @@ Chronological log of architecture decisions and notable findings for `spotify-mc
 13. [Spotify's "discovery" endpoints are restricted for new apps — composed tools plan dropped](13-recommendation-endpoints-restricted.md)
 14. [Personal data tools: top_tracks, top_artists, recently_played](14-personal-data-tools.md)
 15. [Playlist tools: three real Spotify API surprises found by testing](15-playlist-endpoints-renamed.md)
+16. [Playback control tools: pause, resume, skip, volume, queue](16-playback-control-tools.md)

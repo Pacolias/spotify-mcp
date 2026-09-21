@@ -27,6 +27,15 @@ async def _put(path: str, params: dict | None = None) -> httpx.Response:
         return await client.put(path, params=params, headers={"Authorization": f"Bearer {token}"})
 
 
+async def _delete(path: str, json: dict | None = None) -> httpx.Response:
+    token = await get_valid_access_token()
+    async with httpx.AsyncClient(base_url=SPOTIFY_API_BASE) as client:
+        request = client.build_request(
+            "DELETE", path, json=json, headers={"Authorization": f"Bearer {token}"}
+        )
+        return await client.send(request)
+
+
 async def search_tracks(query: str, limit: int = 5) -> list[dict]:
     response = await _get("/search", params={"q": query, "type": "track", "limit": limit})
     response.raise_for_status()
@@ -174,6 +183,16 @@ async def add_tracks_to_playlist(playlist_id: str, track_ids: list[str]) -> None
     # rename pattern as get_playlist_tracks above.
     uris = [f"spotify:track:{track_id}" for track_id in track_ids]
     response = await _post(f"/playlists/{playlist_id}/items", json={"uris": uris})
+    response.raise_for_status()
+
+
+async def remove_tracks_from_playlist(playlist_id: str, track_ids: list[str]) -> None:
+    # Found by trial against the real API, not documented: the DELETE body
+    # shape doesn't match the POST /items shape. {"uris": [...]} (what adding
+    # uses) 400s with "No uris provided"; the working shape is
+    # {"items": [{"uri": "..."}, ...]}.
+    items = [{"uri": f"spotify:track:{track_id}"} for track_id in track_ids]
+    response = await _delete(f"/playlists/{playlist_id}/items", json={"items": items})
     response.raise_for_status()
 
 

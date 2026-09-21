@@ -5,6 +5,7 @@ from spotify_mcp.spotify.client import (
     create_playlist,
     get_playlist_tracks,
     list_playlists,
+    remove_tracks_from_playlist,
 )
 
 
@@ -64,3 +65,15 @@ async def add_tracks(playlist_id: str, track_ids: list[str]) -> str:
         return str(exc)
 
     return f"Added {len(track_ids)} track(s) to playlist {playlist_id}."
+
+
+@mcp_server.tool()
+async def remove_tracks(playlist_id: str, track_ids: list[str]) -> str:
+    """Remove one or more tracks from a playlist. playlist_id and track_ids
+    come from list_user_playlists and playlist_tracks."""
+    try:
+        await remove_tracks_from_playlist(playlist_id, track_ids)
+    except NotAuthenticatedError as exc:
+        return str(exc)
+
+    return f"Removed {len(track_ids)} track(s) from playlist {playlist_id}."

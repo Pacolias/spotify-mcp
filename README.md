@@ -46,3 +46,14 @@ Two things worth logging because they weren't assumed, they were verified agains
 - Mounting the MCP server's ASGI app into FastAPI with plain `app.mount("/mcp-server", mcp_server.streamable_http_app())` is not enough: FastAPI/Starlette does not forward `lifespan` events to mounted sub-apps, so the MCP session manager's task group never starts, and every request fails with `RuntimeError: Task group is not initialized`. Fixed by explicitly running `mcp_server.session_manager.run()` inside FastAPI's own `lifespan` context manager (see `src/spotify_mcp/main.py`).
 
 Verified end-to-end with a real MCP client (`mcp.client.streamable_http`), not just an HTTP smoke test: connects, initializes the session, lists tools, and calls a `ping` tool successfully.
+
+### 2026-09-21 — Spotify OAuth2 PKCE flow implemented
+
+`/auth/login` and `/auth/callback` (in `src/spotify_mcp/spotify/auth.py`) implement the Authorization Code + PKCE flow decided earlier. Notes on the implementation:
+
+- The initial OAuth scope is minimal: `user-read-currently-playing` only, needed for the first two tools (search, currently-playing — search itself needs no scope, any valid user token works for it). More scopes get added as more tools are built, following least privilege.
+- The `state` parameter (CSRF protection, standard OAuth2) is mapped to its PKCE `code_verifier` in an **in-memory dict**, for the short window between redirect and callback. This is only safe because the app is single-user and single-process; a multi-worker deployment would need a shared store (DB/Redis) instead. Flagged here as a known simplification, not an oversight.
+- Tokens are stored as a single fixed row (`id=1`) in the `spotifytoken` SQLite table via `session.merge()` (upsert by primary key) — consistent with the single-user design.
+- `get_valid_access_token()` is the one function every Spotify-calling tool will use: it returns a token from the DB, transparently refreshing it first if it's within 30 seconds of expiring. Raises a custom `NotAuthenticatedError` (not an HTTP exception) if no login has happened yet, since it's meant to be called from MCP tool code, not just FastAPI routes.
+
+Verified with a live request that `/auth/login` builds a correctly-formed redirect to Spotify's `/authorize` endpoint with all required PKCE params. The full round trip (actually logging in through the browser and completing `/auth/callback`) needs a human in the loop — can't be automated from here.

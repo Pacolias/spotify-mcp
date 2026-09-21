@@ -48,3 +48,51 @@ async def get_currently_playing() -> dict | None:
         "duration_ms": item.get("duration_ms"),
         "url": item["external_urls"]["spotify"],
     }
+
+
+async def get_top_tracks(limit: int = 10, time_range: str = "medium_term") -> list[dict]:
+    # time_range: short_term (~4 weeks), medium_term (~6 months), long_term (years).
+    response = await _get("/me/top/tracks", params={"limit": limit, "time_range": time_range})
+    response.raise_for_status()
+    items = response.json()["items"]
+    return [
+        {
+            "id": item["id"],
+            "name": item["name"],
+            "artists": [artist["name"] for artist in item["artists"]],
+            "album": item["album"]["name"],
+            "url": item["external_urls"]["spotify"],
+        }
+        for item in items
+    ]
+
+
+async def get_top_artists(limit: int = 10, time_range: str = "medium_term") -> list[dict]:
+    response = await _get("/me/top/artists", params={"limit": limit, "time_range": time_range})
+    response.raise_for_status()
+    items = response.json()["items"]
+    return [
+        {
+            "id": item["id"],
+            "name": item["name"],
+            "genres": item.get("genres", []),
+            "url": item["external_urls"]["spotify"],
+        }
+        for item in items
+    ]
+
+
+async def get_recently_played(limit: int = 10) -> list[dict]:
+    response = await _get("/me/player/recently-played", params={"limit": limit})
+    response.raise_for_status()
+    items = response.json()["items"]
+    return [
+        {
+            "name": entry["track"]["name"],
+            "artists": [artist["name"] for artist in entry["track"]["artists"]],
+            "album": entry["track"]["album"]["name"],
+            "played_at": entry["played_at"],
+            "url": entry["track"]["external_urls"]["spotify"],
+        }
+        for entry in items
+    ]

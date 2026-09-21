@@ -1,3 +1,6 @@
+import sys
+
+from pydantic import ValidationError
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -26,4 +29,22 @@ class Settings(BaseSettings):
     database_url: str = "sqlite:///./spotify_mcp.db"
 
 
-settings = Settings()
+def _load_settings() -> Settings:
+    try:
+        return Settings()
+    except ValidationError as exc:
+        missing = [str(err["loc"][0]) for err in exc.errors() if err["type"] == "missing"]
+        if missing:
+            print(
+                f"Missing required configuration: {', '.join(missing)}\n\n"
+                "Copy .env.example to .env and fill in the missing value(s):\n"
+                "    cp .env.example .env\n\n"
+                "See the Setup section in README.md for details.",
+                file=sys.stderr,
+            )
+        else:
+            print(f"Invalid configuration:\n{exc}", file=sys.stderr)
+        sys.exit(1)
+
+
+settings = _load_settings()

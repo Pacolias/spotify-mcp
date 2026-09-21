@@ -12,4 +12,4 @@ def ping() -> str:
 # Importing these registers their @mcp_server.tool()-decorated functions above.
 # Must stay at the bottom: each module imports `mcp_server` from this file,
 # so it needs to already be defined when they're imported.
-from spotify_mcp.mcp.tools import playback, personal, search  # noqa: E402, F401
+from spotify_mcp.mcp.tools import playback, personal, playlists, search  # noqa: E402, F401

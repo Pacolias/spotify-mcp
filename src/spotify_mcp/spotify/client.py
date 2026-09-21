@@ -143,12 +143,11 @@ async def get_playlist_tracks(playlist_id: str, limit: int = 50) -> list[dict]:
 
 
 async def create_playlist(name: str, description: str = "", public: bool = False) -> dict:
-    me = await _get("/me")
-    me.raise_for_status()
-    user_id = me.json()["id"]
-
+    # The documented POST /users/{user_id}/playlists now 403s; POST /me/playlists
+    # works instead (and skips having to look up the user id first). Found by
+    # checking the real API, not assumed from docs.
     response = await _post(
-        f"/users/{user_id}/playlists",
+        "/me/playlists",
         json={"name": name, "description": description, "public": public},
     )
     response.raise_for_status()
@@ -161,6 +160,8 @@ async def create_playlist(name: str, description: str = "", public: bool = False
 
 
 async def add_tracks_to_playlist(playlist_id: str, track_ids: list[str]) -> None:
+    # /playlists/{id}/tracks now 403s; /items is the working endpoint, same
+    # rename pattern as get_playlist_tracks above.
     uris = [f"spotify:track:{track_id}" for track_id in track_ids]
-    response = await _post(f"/playlists/{playlist_id}/tracks", json={"uris": uris})
+    response = await _post(f"/playlists/{playlist_id}/items", json={"uris": uris})
     response.raise_for_status()

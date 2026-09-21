@@ -19,3 +19,4 @@ Chronological log of architecture decisions and notable findings for `spotify-mc
 15. [Playlist tools: three real Spotify API surprises found by testing](15-playlist-endpoints-renamed.md)
 16. [Playback control tools: pause, resume, skip, volume, queue](16-playback-control-tools.md)
 17. [Reversed decision: MCP transport switched from streamable HTTP to stdio](17-switch-to-stdio-transport.md)
+18. [`spotify-mcp login`: one-command Spotify login](18-cli-login-command.md)

@@ -2,68 +2,66 @@
 
 An MCP (Model Context Protocol) server for interacting with the Spotify Web API, built with Python and FastAPI.
 
-This is a portfolio project — the engineering log below documents the architecture decisions as they're made, and why.
+This is a portfolio project. The reasoning behind every architecture decision — and why — is logged in [`journal/`](journal/), one entry per decision, in the order they were made.
 
-## Engineering log
+## How it works
 
-### 2026-09-21 — MCP transport: streamable HTTP
+[MCP](https://modelcontextprotocol.io/) is an open protocol that lets an AI client (like Claude) talk to external tools and data sources through a standard interface, instead of custom one-off integrations. A client connects to a server, and the server exposes **tools** the model can call — regular functions with a name, a description, and a typed schema, generated from the function's signature and docstring.
 
-Chose **streamable HTTP** over stdio for the MCP transport. stdio (the simpler default for local-only tools, where the host process spawns the server as a subprocess over stdin/stdout) would require whoever evaluates this project to run it locally with an MCP-compatible client. HTTP lets the server be deployed and evaluated without any local setup.
+This project is one such server, exposing tools backed by the Spotify Web API. It's a single FastAPI application with two things mounted into it:
 
-Trade-off accepted: HTTP transport means the server is network-reachable, so it needs its own auth layer (separate from Spotify's OAuth) to control who can talk to it — to be addressed when we get to that part.
+- **The MCP server itself**, served over streamable HTTP at `/mcp-server/mcp`. Any MCP-compatible client can connect there, list the available tools, and call them.
+- **A Spotify OAuth2 (Authorization Code + PKCE) login flow**, at `/auth/login` and `/auth/callback`. Spotify data (like "what's currently playing") is user-specific, so the server needs a logged-in user's access token to call the Spotify API on their behalf. PKCE means no client secret has to be kept — the flow is safe to run entirely from a public client.
 
-### 2026-09-21 — MCP SDK: official Python SDK (`mcp` / `FastMCP`)
+Once logged in, the server stores the access/refresh token pair in a small SQLite database, and transparently refreshes the access token when it's close to expiring.
 
-Using the [official MCP Python SDK](https://github.com/modelcontextprotocol/python-sdk), specifically `FastMCP`, its high-level API for declaring tools/resources with decorators. It exposes an ASGI app that mounts directly into the FastAPI app, so it composes naturally with the rest of the stack.
+### Available tools
 
-### 2026-09-21 — Spotify auth: OAuth2 Authorization Code + PKCE
+| Tool | Description |
+|---|---|
+| `ping` | Health check — confirms the MCP server is reachable. |
+| `search_track` | Search Spotify's catalog for tracks matching a query. |
+| `now_playing` | Get the track currently playing on the logged-in user's account, if any. |
 
-Spotify auth uses OAuth2. Chose the **Authorization Code flow with PKCE** over the classic Authorization Code + client_secret flow — it's Spotify's current recommendation, and avoids having to carefully guard a long-lived client secret in favor of a per-flow dynamically generated verifier/challenge pair.
+## Setup
 
-The OAuth callback (Spotify redirects the user's browser back after consent) is a regular route inside the same FastAPI app — this is needed regardless of which MCP transport is chosen, since the consent step always goes through a browser.
+**Prerequisites:**
+- Python 3.14+
+- [uv](https://github.com/astral-sh/uv) for dependency management
+- A Spotify account and a [Spotify Developer app](https://developer.spotify.com/dashboard) (free to create)
 
-### 2026-09-21 — Token storage: database (SQLite to start)
+**1. Install dependencies**
 
-Spotify access/refresh tokens are stored in a database rather than a flat file. SQLite to start (simple, zero external dependency), with an easy path to Postgres later if needed. Chosen over a JSON file mainly for persistence across restarts/redeploys on typical hosting setups, and because it better reflects real-world practice.
+```bash
+uv sync
+```
 
-### 2026-09-21 — Dependency manager: uv
+**2. Create a Spotify Developer app**
 
-Using [uv](https://github.com/astral-sh/uv) (Astral) for dependency and virtualenv management, installed from Fedora's repos (`dnf install uv`). Chosen over Poetry and plain pip/venv for speed and because it's become the emerging standard in the Python/AI tooling ecosystem.
+At the [Spotify Developer Dashboard](https://developer.spotify.com/dashboard):
+- Create an app (any name/description).
+- Add `http://127.0.0.1:8000/auth/callback` as a Redirect URI.
+- Under "Which API/SDKs are you planning to use?", check **Web API**.
+- Copy the app's **Client ID** (no client secret needed — this project uses PKCE).
 
-### 2026-09-21 — Spotify API access: raw httpx, no wrapper library
+**3. Configure environment variables**
 
-Calling the Spotify Web API directly with [httpx](https://www.python-httpx.org/) (async HTTP client) instead of a wrapper library like `spotipy`. More code to write ourselves, but it keeps the OAuth/PKCE flow and every API call fully transparent — useful both for learning MCP/OAuth properly and for showing that understanding in a portfolio project, rather than hiding it behind a third-party abstraction.
+```bash
+cp .env.example .env
+```
 
-### 2026-09-21 — Database layer: SQLModel
+Fill in `SPOTIFY_CLIENT_ID` in `.env` with the Client ID from step 2. The other defaults work for local development as-is.
 
-Using [SQLModel](https://sqlmodel.tiangolo.com/) (by the FastAPI author, combines SQLAlchemy + Pydantic) over raw `sqlite3`. It's the current standard pairing for FastAPI + a database, integrates cleanly with FastAPI's Pydantic models, and isn't meaningfully more code than going raw for this project's scope.
+**4. Run the server**
 
-### 2026-09-21 — MCP SDK API drift: `FastMCP` → `MCPServer`, and mounting gotcha
+```bash
+uv run uvicorn spotify_mcp.main:app --port 8000
+```
 
-Two things worth logging because they weren't assumed, they were verified against the actually-installed `mcp` package (v2.x):
+**5. Log in to Spotify**
 
-- The high-level API class was renamed from `FastMCP` to `MCPServer` (`mcp.server.mcpserver.MCPServer`) at some point after v1. Same shape (`.tool()` decorator, `.streamable_http_app()`), different import path.
-- Mounting the MCP server's ASGI app into FastAPI with plain `app.mount("/mcp-server", mcp_server.streamable_http_app())` is not enough: FastAPI/Starlette does not forward `lifespan` events to mounted sub-apps, so the MCP session manager's task group never starts, and every request fails with `RuntimeError: Task group is not initialized`. Fixed by explicitly running `mcp_server.session_manager.run()` inside FastAPI's own `lifespan` context manager (see `src/spotify_mcp/main.py`).
+Open `http://127.0.0.1:8000/auth/login` in a browser and approve access. This only needs to be done once (until the refresh token is revoked).
 
-Verified end-to-end with a real MCP client (`mcp.client.streamable_http`), not just an HTTP smoke test: connects, initializes the session, lists tools, and calls a `ping` tool successfully.
+**6. Connect an MCP client**
 
-### 2026-09-21 — Spotify OAuth2 PKCE flow implemented
-
-`/auth/login` and `/auth/callback` (in `src/spotify_mcp/spotify/auth.py`) implement the Authorization Code + PKCE flow decided earlier. Notes on the implementation:
-
-- The initial OAuth scope is minimal: `user-read-currently-playing` only, needed for the first two tools (search, currently-playing — search itself needs no scope, any valid user token works for it). More scopes get added as more tools are built, following least privilege.
-- The `state` parameter (CSRF protection, standard OAuth2) is mapped to its PKCE `code_verifier` in an **in-memory dict**, for the short window between redirect and callback. This is only safe because the app is single-user and single-process; a multi-worker deployment would need a shared store (DB/Redis) instead. Flagged here as a known simplification, not an oversight.
-- Tokens are stored as a single fixed row (`id=1`) in the `spotifytoken` SQLite table via `session.merge()` (upsert by primary key) — consistent with the single-user design.
-- `get_valid_access_token()` is the one function every Spotify-calling tool will use: it returns a token from the DB, transparently refreshing it first if it's within 30 seconds of expiring. Raises a custom `NotAuthenticatedError` (not an HTTP exception) if no login has happened yet, since it's meant to be called from MCP tool code, not just FastAPI routes.
-
-Verified with a live request that `/auth/login` builds a correctly-formed redirect to Spotify's `/authorize` endpoint with all required PKCE params. The full round trip (actually logging in through the browser and completing `/auth/callback`) needs a human in the loop — can't be automated from here. Confirmed working against a real Spotify account.
-
-Bug found and fixed while testing: SQLite has no timezone-aware datetime type, so a tz-aware `expires_at` written on login came back **naive** on read, and Python refuses to compare a naive and an aware datetime (`TypeError`). Fixed by working in naive-but-UTC datetimes consistently everywhere in `auth.py`.
-
-### 2026-09-21 — First two MCP tools: `search_track` and `now_playing`
-
-`src/spotify_mcp/spotify/client.py` wraps the two Spotify Web API calls (`GET /search`, `GET /me/player/currently-playing`) with `httpx`, using `get_valid_access_token()` for auth. `src/spotify_mcp/mcp/tools/search.py` and `.../playback.py` expose them as MCP tools (`search_track`, `now_playing`), registered by importing those modules at the bottom of `mcp/server.py` (after `mcp_server` is defined, to avoid a circular import).
-
-Both tools return a formatted string rather than structured JSON — more directly useful for an LLM client to read and relay, and simple enough not to need a richer schema yet for just two read-only tools.
-
-Verified end-to-end through a real MCP client, against a live Spotify account: `search_track` returns real catalog results, `now_playing` correctly returns "nothing playing" when idle and real track data when something is playing on the account.
+Point any streamable-HTTP-compatible MCP client at `http://127.0.0.1:8000/mcp-server/mcp`.

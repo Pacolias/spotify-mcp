@@ -56,6 +56,10 @@ graph TD
 | `top_tracks` | Get the user's most-listened-to tracks (short/medium/long term). |
 | `top_artists` | Get the user's most-listened-to artists (short/medium/long term). |
 | `recently_played` | Get the user's most recently played tracks. |
+| `list_user_playlists` | List the logged-in user's playlists. |
+| `playlist_tracks` | List the tracks in a playlist. |
+| `create_user_playlist` | Create a new playlist. |
+| `add_tracks` | Add one or more tracks to a playlist. |
 
 ## Setup
 

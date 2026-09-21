@@ -1,0 +1,15 @@
+# Playlist tools: three real Spotify API surprises found by testing
+
+**Date:** 2026-09-21
+
+Added `list_playlists`, `get_playlist_tracks`, `create_playlist`, and `add_tracks_to_playlist` to the Spotify client, and matching MCP tools (`list_user_playlists`, `playlist_tracks`, `create_user_playlist`, `add_tracks`). As with every previous piece of this project, each function was verified against the real API before being trusted — and this time it turned up three real discrepancies between the (widely-documented) Spotify Web API shape and what the live API actually does today:
+
+1. **`/playlists/{id}/tracks` → `/playlists/{id}/items`.** The documented endpoint for a playlist's track listing now returns `403 Forbidden`; the working one is `/items`. Same rename applies to adding tracks: `POST /playlists/{id}/tracks` 403s, `POST /playlists/{id}/items` (same body shape, `{"uris": [...]}`) works.
+2. **Track objects are flatter.** In the old shape, each entry was `{"track": {...fields...}}`. Now it's `{"item": {...fields...}}`, with the track's fields (`id`, `name`, `artists`, `external_urls`, ...) directly on `item` — one level shallower than expected.
+3. **`POST /users/{user_id}/playlists` → `POST /me/playlists`.** The documented playlist-creation endpoint (which requires first fetching the user's own ID via `/me`) now 403s entirely. `POST /me/playlists` works and doesn't need the extra `/me` lookup — net simplification once found.
+
+None of these were found by reading documentation — they were found by making the real call, reading the real error, and in the case of `/items` on both playlist listing and playlist creation, discovering the correct name for the same reason: the shape of `403 Forbidden` (no scope message) plus the pattern already seen with `/tracks` → `/items` suggested trying the same rename before assuming the whole feature was inaccessible like the endpoints in [entry 13](13-recommendation-endpoints-restricted.md).
+
+**A fourth thing worth flagging, not yet fixed:** `create_playlist("...", public=False)` was called and verified with a real test playlist — Spotify created it with `public: true` regardless of the `public: false` sent in the request body. Not yet root-caused (could be an API quirk, a documentation gap, or something about the app's registered capabilities) — noted here rather than silently ignored, since a caller relying on `public=False` for privacy would get the opposite of what they asked for. Follow-up if this becomes relevant: confirm against Spotify's own dashboard/support, or test with a fresh existing (non-test) playlist's `public` field response for comparison.
+
+Verified end-to-end against a real account: created a real test playlist ("spotify-mcp test playlist"), added two real tracks to it via `add_tracks_to_playlist` (both the raw call and the fixed client function), listed its contents back correctly, then deleted it (unfollowed, per Spotify's playlist-deletion model) after the user confirmed they'd seen it — with explicit confirmation before creating anything in the real account, since this was the project's first tool with a real side effect outside its own database.

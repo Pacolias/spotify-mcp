@@ -16,3 +16,4 @@ Chronological log of architecture decisions and notable findings for `spotify-mc
 12. [Deployment target: Render, plus bearer-token auth on the MCP endpoint](12-deployment-plan-and-mcp-bearer-auth.md)
 13. [Spotify's "discovery" endpoints are restricted for new apps — composed tools plan dropped](13-recommendation-endpoints-restricted.md)
 14. [Personal data tools: top_tracks, top_artists, recently_played](14-personal-data-tools.md)
+15. [Playlist tools: three real Spotify API surprises found by testing](15-playlist-endpoints-renamed.md)

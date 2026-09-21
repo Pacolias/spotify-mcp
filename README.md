@@ -70,15 +70,25 @@ graph TD
 
 ## Setup
 
-Requires Python 3.14+, [uv](https://github.com/astral-sh/uv), and a Spotify account.
+Requires Python 3.14+ and a Spotify account.
+
+**1. Install dependencies** — pick one:
 
 ```bash
-uv sync                       # install
+uv sync                             # with uv (recommended)
+```
+```bash
+pip install -r requirements.txt     # or with plain pip — kept in sync with pyproject.toml via `uv export`
+```
+
+**2. Configure and log in:**
+
+```bash
 cp .env.example .env          # then set SPOTIFY_CLIENT_ID in .env — see below
 uv run spotify-mcp login      # opens your browser, log in once
 ```
 
-(No `uv`? `pip install -r requirements.txt` works too — it's kept in sync with `pyproject.toml` via `uv export`.)
+(Installed with plain `pip`? Drop the `uv run` prefix — just `spotify-mcp login`.)
 
 **`SPOTIFY_CLIENT_ID`**: [create a Spotify app](https://developer.spotify.com/dashboard) → add `http://127.0.0.1:8000/auth/callback` as a Redirect URI → check **Web API** → copy the Client ID (no secret needed, this uses PKCE) → paste into `.env`.
 

@@ -73,6 +73,8 @@ graph TD
 | `liked_songs` | List the user's saved ("Liked Songs") tracks. |
 | `like_tracks` | Save tracks to Liked Songs. ⚠️ requires Spotify's Extended Quota Mode — fails with a permissions error on apps without it (like this one, by default). |
 | `unlike_tracks` | Remove tracks from Liked Songs. Same restriction as `like_tracks`. |
+| `list_devices` | List Spotify devices already open (phone, desktop, web player, ...) and which is active. |
+| `activate_device` | Switch playback to a specific device. Can't launch Spotify itself — only controls devices already running somewhere. |
 | `pause` | Pause playback on the active device. |
 | `resume` | Resume/start playback on the active device. |
 | `skip_next` | Skip to the next track. |

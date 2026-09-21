@@ -10,3 +10,12 @@ async def test_every_tool_has_a_non_empty_description() -> None:
     assert tools, "expected at least one registered tool"
     for tool in tools:
         assert tool.description, f"tool '{tool.name}' has no description"
+
+
+async def test_every_resource_has_a_non_empty_description() -> None:
+    resources = await mcp_server.list_resources()
+    templates = await mcp_server.list_resource_templates()
+
+    assert resources or templates, "expected at least one registered resource"
+    for resource in [*resources, *templates]:
+        assert resource.description, f"resource '{resource.name}' has no description"

@@ -15,3 +15,4 @@ Chronological log of architecture decisions and notable findings for `spotify-mc
 11. [Test suite: pytest + pytest-asyncio + respx](11-test-suite.md)
 12. [Deployment target: Render, plus bearer-token auth on the MCP endpoint](12-deployment-plan-and-mcp-bearer-auth.md)
 13. [Spotify's "discovery" endpoints are restricted for new apps — composed tools plan dropped](13-recommendation-endpoints-restricted.md)
+14. [Personal data tools: top_tracks, top_artists, recently_played](14-personal-data-tools.md)

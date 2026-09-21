@@ -17,9 +17,9 @@ Servidor MCP (Model Context Protocol) para interactuar con la API de Spotify.
 
 ## Decisiones de arquitectura tomadas
 
-Este proyecto es de **portfolio**: pensado para que un Tech Lead pueda evaluarlo fácilmente (idealmente desplegado, sin setup local).
+Este proyecto es de **portfolio**.
 
-- **Transporte MCP: streamable HTTP** (no stdio). Elegido para poder desplegarlo y que se evalúe sin instalar nada localmente. Pendiente: definir una capa de auth propia para el servidor MCP (aparte del OAuth de Spotify), ya que al ser accesible por red cualquiera podría intentar hablarle.
-- **SDK de MCP: SDK oficial de Python** (`mcp`, con `FastMCP`), montado como app ASGI dentro de la app de FastAPI.
-- **Auth con Spotify: OAuth2, flujo Authorization Code + PKCE.** El endpoint de callback vive como una ruta más dentro de la misma app FastAPI (el paso de consentimiento pasa por navegador sí o sí, independientemente del transporte MCP).
-- **Almacenamiento de tokens: base de datos, SQLite para empezar.** Preferido sobre un fichero JSON plano por persistencia entre reinicios/redeploys y porque demuestra mejor práctica; fácil de migrar a Postgres después.
+- **Transporte MCP: stdio** (no HTTP). Decisión revertida el 2026-09-21 — originalmente era streamable HTTP, pensado para desplegarlo y que un Tech Lead lo evaluara sin setup local; se cambió a stdio para que sea una herramienta puramente local, lanzada como subproceso por el host MCP (Claude Desktop/Code). Trade-off asumido conscientemente: ya no se puede evaluar sin clonar el repo y ejecutarlo. Esto invalidó el plan de despliegue en Render y la auth por bearer token del endpoint MCP (ya no hace falta, stdio no tiene exposición de red).
+- **SDK de MCP: SDK oficial de Python** (`mcp`, con `MCPServer`, la API de alto nivel — en versiones nuevas del SDK renombrada desde `FastMCP`).
+- **Auth con Spotify: OAuth2, flujo Authorization Code + PKCE.** El callback sigue necesitando un servidor HTTP local (navegador de por medio), independientemente del transporte MCP — por eso vive en una app FastAPI aparte (`spotify_mcp.main`), separada del proceso del servidor MCP en sí (`spotify_mcp.stdio_server`).
+- **Almacenamiento de tokens: base de datos, SQLite.** Compartida por ambos procesos (login y servidor MCP). Ya no hay plan de migrar a Postgres (eso era parte del plan de despliegue, descartado).

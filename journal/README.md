@@ -28,3 +28,4 @@ Chronological log of architecture decisions and notable findings for `spotify-mc
 24. [`import_youtube_playlist`: build a Spotify playlist from a YouTube video's tracklist](24-youtube-playlist-import.md)
 25. [Shuffle/repeat/seek, Liked Songs, and friendly playback/API error messages](25-shuffle-repeat-seek-and-liked-songs.md)
 26. [`list_devices` / `activate_device` — and why "start Spotify from nothing" isn't possible](26-device-listing-and-activation.md)
+27. [`spotify://me/profile` and `spotify://me/dashboard` resources](27-profile-and-dashboard-resources.md)

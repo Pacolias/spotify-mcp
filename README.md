@@ -91,6 +91,8 @@ Read-only, returned as JSON.
 | `spotify://me/now-playing` | The track currently playing, if any. |
 | `spotify://me/playlists` | The logged-in user's playlists. |
 | `spotify://playlist/{playlist_id}` | The tracks in a specific playlist. |
+| `spotify://me/profile` | Basic profile: id, display name, followers, URL/image. |
+| `spotify://me/dashboard` | One-shot snapshot: now playing, devices, top tracks, recently played. |
 
 ## Setup
 

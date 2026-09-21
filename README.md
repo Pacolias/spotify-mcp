@@ -70,46 +70,19 @@ graph TD
 
 ## Setup
 
-**Prerequisites:**
-- Python 3.14+
-- [uv](https://github.com/astral-sh/uv) for dependency management
-- A Spotify account and a [Spotify Developer app](https://developer.spotify.com/dashboard) (free to create)
-
-**1. Install dependencies**
+Requires Python 3.14+, [uv](https://github.com/astral-sh/uv), and a Spotify account.
 
 ```bash
-uv sync
+uv sync                       # install
+cp .env.example .env          # then set SPOTIFY_CLIENT_ID in .env — see below
+uv run spotify-mcp login      # opens your browser, log in once
 ```
 
-**2. Create a Spotify Developer app**
+(No `uv`? `pip install -r requirements.txt` works too — it's kept in sync with `pyproject.toml` via `uv export`.)
 
-At the [Spotify Developer Dashboard](https://developer.spotify.com/dashboard):
-- Create an app (any name/description).
-- Add `http://127.0.0.1:8000/auth/callback` as a Redirect URI.
-- Under "Which API/SDKs are you planning to use?", check **Web API**.
-- Copy the app's **Client ID** (no client secret needed — this project uses PKCE).
+**`SPOTIFY_CLIENT_ID`**: [create a Spotify app](https://developer.spotify.com/dashboard) → add `http://127.0.0.1:8000/auth/callback` as a Redirect URI → check **Web API** → copy the Client ID (no secret needed, this uses PKCE) → paste into `.env`.
 
-**3. Configure environment variables**
-
-```bash
-cp .env.example .env
-```
-
-Fill in `SPOTIFY_CLIENT_ID` in `.env` with the Client ID from step 2. The other defaults work for local development as-is.
-
-**4. Log in to Spotify**
-
-Run the login helper:
-
-```bash
-uv run uvicorn spotify_mcp.main:app --port 8000
-```
-
-Open `http://127.0.0.1:8000/auth/login` in a browser and approve access. This only needs to be done once (until the refresh token is revoked) — the token is stored in `spotify_mcp.db`, which the MCP server reads from directly. The login helper doesn't need to stay running once you're logged in; stop it with Ctrl+C.
-
-**5. Point your MCP host at the server**
-
-Configure your MCP-compatible host (Claude Desktop, Claude Code, etc.) to launch the server. The exact config file differs per host, but the shape is the same everywhere — for example:
+**Point your MCP host at it** — for Claude Desktop / Claude Code, add:
 
 ```json
 {
@@ -121,8 +94,6 @@ Configure your MCP-compatible host (Claude Desktop, Claude Code, etc.) to launch
   }
 }
 ```
-
-The host will spawn `uv run spotify-mcp` as a subprocess and talk to it over stdio.
 
 ## Testing
 

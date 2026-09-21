@@ -2,6 +2,14 @@ import base64
 import hashlib
 import secrets
 from datetime import UTC, datetime, timedelta
+
+
+def _utcnow() -> datetime:
+    # Naive UTC on purpose: SQLite has no timezone-aware datetime type, so a
+    # tz-aware value written here comes back naive on read, and Python can't
+    # compare naive and aware datetimes. Keeping everything naive-but-UTC
+    # avoids that mismatch.
+    return datetime.now(UTC).replace(tzinfo=None)
 from urllib.parse import urlencode
 
 import httpx
@@ -92,7 +100,7 @@ async def callback(
         id=1,
         access_token=payload["access_token"],
         refresh_token=payload["refresh_token"],
-        expires_at=datetime.now(UTC) + timedelta(seconds=payload["expires_in"]),
+        expires_at=_utcnow() + timedelta(seconds=payload["expires_in"]),
         scope=payload["scope"],
     )
     with Session(engine) as session:
@@ -116,7 +124,7 @@ async def _refresh(token: SpotifyToken, session: Session) -> SpotifyToken:
     payload = response.json()
 
     token.access_token = payload["access_token"]
-    token.expires_at = datetime.now(UTC) + timedelta(seconds=payload["expires_in"])
+    token.expires_at = _utcnow() + timedelta(seconds=payload["expires_in"])
     # Spotify doesn't always rotate the refresh token — keep the old one if absent.
     if "refresh_token" in payload:
         token.refresh_token = payload["refresh_token"]
@@ -136,7 +144,7 @@ async def get_valid_access_token() -> str:
         if token is None:
             raise NotAuthenticatedError("Not logged in — visit /auth/login first.")
 
-        if token.expires_at <= datetime.now(UTC) + timedelta(seconds=30):
+        if token.expires_at <= _utcnow() + timedelta(seconds=30):
             token = await _refresh(token, session)
 
         return token.access_token

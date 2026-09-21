@@ -1,10 +1,14 @@
 from spotify_mcp.mcp.server import mcp_server
 from spotify_mcp.spotify.auth import NotAuthenticatedError
 from spotify_mcp.spotify.client import (
+    SpotifyPlaybackError,
     add_to_queue,
     get_currently_playing,
     pause_playback,
     resume_playback,
+    seek_to_position,
+    set_repeat_mode,
+    set_shuffle,
     set_volume,
     skip_to_next,
     skip_to_previous,
@@ -34,7 +38,7 @@ async def pause() -> str:
     """Pause playback on the user's active Spotify device."""
     try:
         await pause_playback()
-    except NotAuthenticatedError as exc:
+    except (NotAuthenticatedError, SpotifyPlaybackError) as exc:
         return str(exc)
     return "Paused."
 
@@ -44,7 +48,7 @@ async def resume() -> str:
     """Resume/start playback on the user's active Spotify device."""
     try:
         await resume_playback()
-    except NotAuthenticatedError as exc:
+    except (NotAuthenticatedError, SpotifyPlaybackError) as exc:
         return str(exc)
     return "Resumed playback."
 
@@ -54,7 +58,7 @@ async def skip_next() -> str:
     """Skip to the next track on the user's active Spotify device."""
     try:
         await skip_to_next()
-    except NotAuthenticatedError as exc:
+    except (NotAuthenticatedError, SpotifyPlaybackError) as exc:
         return str(exc)
     return "Skipped to next track."
 
@@ -64,7 +68,7 @@ async def skip_previous() -> str:
     """Skip to the previous track on the user's active Spotify device."""
     try:
         await skip_to_previous()
-    except NotAuthenticatedError as exc:
+    except (NotAuthenticatedError, SpotifyPlaybackError) as exc:
         return str(exc)
     return "Skipped to previous track."
 
@@ -76,7 +80,7 @@ async def set_playback_volume(volume_percent: int) -> str:
         return "volume_percent must be between 0 and 100."
     try:
         await set_volume(volume_percent)
-    except NotAuthenticatedError as exc:
+    except (NotAuthenticatedError, SpotifyPlaybackError) as exc:
         return str(exc)
     return f"Volume set to {volume_percent}%."
 
@@ -86,6 +90,42 @@ async def queue_track(track_id: str) -> str:
     """Add a track to the playback queue. track_id comes from search_track."""
     try:
         await add_to_queue(track_id)
-    except NotAuthenticatedError as exc:
+    except (NotAuthenticatedError, SpotifyPlaybackError) as exc:
         return str(exc)
     return "Track added to queue."
+
+
+@mcp_server.tool()
+async def shuffle(enabled: bool) -> str:
+    """Turn shuffle mode on or off on the user's active Spotify device."""
+    try:
+        await set_shuffle(enabled)
+    except (NotAuthenticatedError, SpotifyPlaybackError) as exc:
+        return str(exc)
+    return f"Shuffle {'on' if enabled else 'off'}."
+
+
+@mcp_server.tool()
+async def repeat_mode(mode: str) -> str:
+    """Set repeat mode on the user's active Spotify device. mode: "track"
+    (repeat the current track), "context" (repeat the current playlist/album),
+    or "off"."""
+    if mode not in ("track", "context", "off"):
+        return "mode must be one of: track, context, off."
+    try:
+        await set_repeat_mode(mode)
+    except (NotAuthenticatedError, SpotifyPlaybackError) as exc:
+        return str(exc)
+    return f"Repeat mode set to '{mode}'."
+
+
+@mcp_server.tool()
+async def seek(position_ms: int) -> str:
+    """Seek to a position (in milliseconds) in the currently playing track."""
+    if position_ms < 0:
+        return "position_ms must be 0 or greater."
+    try:
+        await seek_to_position(position_ms)
+    except (NotAuthenticatedError, SpotifyPlaybackError) as exc:
+        return str(exc)
+    return f"Seeked to {position_ms}ms."

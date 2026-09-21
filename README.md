@@ -1,6 +1,6 @@
 # spotify-mcp
 
-An MCP (Model Context Protocol) server for interacting with the Spotify Web API, built with Python and FastAPI.
+An MCP (Model Context Protocol) server for interacting with the Spotify Web API, built with Python and FastAPI. Runs locally — an MCP host (Claude Desktop, Claude Code, etc.) launches it as a subprocess on your own machine.
 
 This is a portfolio project. The reasoning behind every architecture decision — and why — is logged in [`journal/`](journal/), one entry per decision, in the order they were made.
 
@@ -8,22 +8,24 @@ This is a portfolio project. The reasoning behind every architecture decision �
 
 [MCP](https://modelcontextprotocol.io/) is an open protocol that lets an AI client (like Claude) talk to external tools and data sources through a standard interface, instead of custom one-off integrations. A client connects to a server, and the server exposes **tools** the model can call — regular functions with a name, a description, and a typed schema, generated from the function's signature and docstring.
 
-This project is one such server, exposing tools backed by the Spotify Web API. It's a single FastAPI application with two things mounted into it:
+This project is two small, single-purpose local programs:
 
-- **The MCP server itself**, served over streamable HTTP at `/mcp-server/mcp`, guarded by a bearer token (any MCP-compatible client needs `Authorization: Bearer <token>` to connect, list tools, or call them — it's a network-reachable endpoint now that the transport is HTTP).
-- **A Spotify OAuth2 (Authorization Code + PKCE) login flow**, at `/auth/login` and `/auth/callback`, not behind the bearer token — these are reached by the user's browser, not an MCP client, and are already gated by Spotify's own login screen. Spotify data (like "what's currently playing") is user-specific, so the server needs a logged-in user's access token to call the Spotify API on their behalf. PKCE means no client secret has to be kept.
+- **The MCP server itself** (`spotify_mcp.stdio_server`), talking to its host over **stdio** — the host process launches it and communicates over stdin/stdout, no network involved. This is what an MCP-compatible client actually connects to.
+- **A local login helper** (`spotify_mcp.main`, a small FastAPI app), run separately, that handles the Spotify OAuth2 (Authorization Code + PKCE) flow at `/auth/login` and `/auth/callback`. Spotify data (like "what's currently playing") is user-specific, so a logged-in user's access token is needed to call the Spotify API on their behalf. The login step needs a browser and an HTTP redirect regardless of how the MCP server itself talks to its host — that's a property of OAuth, not of MCP transport — so it's kept as its own small process rather than folded into the stdio one.
 
-Once logged in, the server stores the access/refresh token pair in a small SQLite database, and transparently refreshes the access token when it's close to expiring.
+Once logged in, the access/refresh token pair is stored in a small SQLite database, shared by both processes, and transparently refreshed when it's close to expiring.
 
 ```mermaid
 graph TD
-    MC["MCP Client<br/>(e.g. Claude)"]
+    Host["MCP Host<br/>(e.g. Claude Desktop / Claude Code)"]
     Browser["User's Browser"]
 
-    subgraph App["FastAPI app"]
-        Bearer["Bearer token middleware"]
-        MCPServer["MCP server<br/>/mcp-server/mcp (streamable HTTP)"]
+    subgraph Stdio["MCP server process (stdio)"]
+        MCPServer["mcp_server.run()<br/>stdio transport"]
         Tools["MCP tools<br/>search, now_playing, top_tracks, ..."]
+    end
+
+    subgraph LoginApp["Login helper (FastAPI, run separately)"]
         AuthRoutes["/auth/login, /auth/callback<br/>(OAuth2 + PKCE)"]
     end
 
@@ -32,8 +34,7 @@ graph TD
     SpotifyAPI["api.spotify.com"]
     SpotifyAuth["accounts.spotify.com"]
 
-    MC -->|"Authorization: Bearer token"| Bearer
-    Bearer --> MCPServer
+    Host -->|"spawns as subprocess, stdin/stdout"| MCPServer
     MCPServer --> Tools
     Tools --> SpotifyClient
 
@@ -96,19 +97,32 @@ cp .env.example .env
 
 Fill in `SPOTIFY_CLIENT_ID` in `.env` with the Client ID from step 2. The other defaults work for local development as-is.
 
-**4. Run the server**
+**4. Log in to Spotify**
+
+Run the login helper:
 
 ```bash
 uv run uvicorn spotify_mcp.main:app --port 8000
 ```
 
-**5. Log in to Spotify**
+Open `http://127.0.0.1:8000/auth/login` in a browser and approve access. This only needs to be done once (until the refresh token is revoked) — the token is stored in `spotify_mcp.db`, which the MCP server reads from directly. The login helper doesn't need to stay running once you're logged in; stop it with Ctrl+C.
 
-Open `http://127.0.0.1:8000/auth/login` in a browser and approve access. This only needs to be done once (until the refresh token is revoked).
+**5. Point your MCP host at the server**
 
-**6. Connect an MCP client**
+Configure your MCP-compatible host (Claude Desktop, Claude Code, etc.) to launch the server. The exact config file differs per host, but the shape is the same everywhere — for example:
 
-Point any streamable-HTTP-compatible MCP client at `http://127.0.0.1:8000/mcp-server/mcp`.
+```json
+{
+  "mcpServers": {
+    "spotify-mcp": {
+      "command": "uv",
+      "args": ["run", "--directory", "/absolute/path/to/spotify-mcp", "spotify-mcp"]
+    }
+  }
+}
+```
+
+The host will spawn `uv run spotify-mcp` as a subprocess and talk to it over stdio.
 
 ## Testing
 

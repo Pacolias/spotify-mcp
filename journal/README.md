@@ -18,3 +18,4 @@ Chronological log of architecture decisions and notable findings for `spotify-mc
 14. [Personal data tools: top_tracks, top_artists, recently_played](14-personal-data-tools.md)
 15. [Playlist tools: three real Spotify API surprises found by testing](15-playlist-endpoints-renamed.md)
 16. [Playback control tools: pause, resume, skip, volume, queue](16-playback-control-tools.md)
+17. [Reversed decision: MCP transport switched from streamable HTTP to stdio](17-switch-to-stdio-transport.md)

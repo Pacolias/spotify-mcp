@@ -1,9 +1,11 @@
 from spotify_mcp.mcp.server import mcp_server
 from spotify_mcp.spotify.auth import NotAuthenticatedError
 from spotify_mcp.spotify.client import (
+    SpotifyAPIError,
     SpotifyPlaybackError,
     add_to_queue,
     get_currently_playing,
+    get_devices,
     pause_playback,
     resume_playback,
     seek_to_position,
@@ -12,6 +14,7 @@ from spotify_mcp.spotify.client import (
     set_volume,
     skip_to_next,
     skip_to_previous,
+    transfer_playback,
 )
 
 
@@ -129,3 +132,35 @@ async def seek(position_ms: int) -> str:
     except (NotAuthenticatedError, SpotifyPlaybackError) as exc:
         return str(exc)
     return f"Seeked to {position_ms}ms."
+
+
+@mcp_server.tool()
+async def list_devices() -> str:
+    """List the Spotify devices currently known to the user's account (phone,
+    desktop app, web player, speakers, ...), including which one (if any) is
+    active. Use this to see what's available before calling activate_device
+    — the Spotify API can only control a device that's already open
+    somewhere, it can't launch Spotify from nothing."""
+    try:
+        devices = await get_devices()
+    except (NotAuthenticatedError, SpotifyAPIError) as exc:
+        return str(exc)
+
+    if not devices:
+        return "No devices found. Open Spotify on a phone, desktop, or web player first."
+
+    return "\n".join(
+        f"{d['name']} ({d['type']}){' — active' if d['is_active'] else ''} — id: {d['id']}"
+        for d in devices
+    )
+
+
+@mcp_server.tool()
+async def activate_device(device_id: str, start_playing: bool = True) -> str:
+    """Switch playback to a specific device (from list_devices) and
+    optionally start playing on it."""
+    try:
+        await transfer_playback(device_id, play=start_playing)
+    except (NotAuthenticatedError, SpotifyPlaybackError) as exc:
+        return str(exc)
+    return f"Switched playback to device {device_id}."

@@ -21,10 +21,14 @@ async def _post(
         )
 
 
-async def _put(path: str, params: dict | None = None) -> httpx.Response:
+async def _put(
+    path: str, params: dict | None = None, json: dict | None = None
+) -> httpx.Response:
     token = await get_valid_access_token()
     async with httpx.AsyncClient(base_url=SPOTIFY_API_BASE) as client:
-        return await client.put(path, params=params, headers={"Authorization": f"Bearer {token}"})
+        return await client.put(
+            path, params=params, json=json, headers={"Authorization": f"Bearer {token}"}
+        )
 
 
 async def _delete(
@@ -322,3 +326,23 @@ async def save_tracks(track_ids: list[str]) -> None:
 async def remove_saved_tracks(track_ids: list[str]) -> None:
     response = await _delete("/me/tracks", params={"ids": ",".join(track_ids)})
     _raise_for_api_error(response)
+
+
+async def get_devices() -> list[dict]:
+    response = await _get("/me/player/devices")
+    _raise_for_api_error(response)
+    return [
+        {
+            "id": d["id"],
+            "name": d["name"],
+            "type": d["type"],
+            "is_active": d["is_active"],
+            "volume_percent": d.get("volume_percent"),
+        }
+        for d in response.json()["devices"]
+    ]
+
+
+async def transfer_playback(device_id: str, play: bool = True) -> None:
+    response = await _put("/me/player", json={"device_ids": [device_id], "play": play})
+    _raise_for_playback_error(response)

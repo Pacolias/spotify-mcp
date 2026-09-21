@@ -11,10 +11,20 @@ async def _get(path: str, params: dict | None = None) -> httpx.Response:
         return await client.get(path, params=params, headers={"Authorization": f"Bearer {token}"})
 
 
-async def _post(path: str, json: dict) -> httpx.Response:
+async def _post(
+    path: str, json: dict | None = None, params: dict | None = None
+) -> httpx.Response:
     token = await get_valid_access_token()
     async with httpx.AsyncClient(base_url=SPOTIFY_API_BASE) as client:
-        return await client.post(path, json=json, headers={"Authorization": f"Bearer {token}"})
+        return await client.post(
+            path, json=json, params=params, headers={"Authorization": f"Bearer {token}"}
+        )
+
+
+async def _put(path: str, params: dict | None = None) -> httpx.Response:
+    token = await get_valid_access_token()
+    async with httpx.AsyncClient(base_url=SPOTIFY_API_BASE) as client:
+        return await client.put(path, params=params, headers={"Authorization": f"Bearer {token}"})
 
 
 async def search_tracks(query: str, limit: int = 5) -> list[dict]:
@@ -164,4 +174,34 @@ async def add_tracks_to_playlist(playlist_id: str, track_ids: list[str]) -> None
     # rename pattern as get_playlist_tracks above.
     uris = [f"spotify:track:{track_id}" for track_id in track_ids]
     response = await _post(f"/playlists/{playlist_id}/items", json={"uris": uris})
+    response.raise_for_status()
+
+
+async def pause_playback() -> None:
+    response = await _put("/me/player/pause")
+    response.raise_for_status()
+
+
+async def resume_playback() -> None:
+    response = await _put("/me/player/play")
+    response.raise_for_status()
+
+
+async def skip_to_next() -> None:
+    response = await _post("/me/player/next")
+    response.raise_for_status()
+
+
+async def skip_to_previous() -> None:
+    response = await _post("/me/player/previous")
+    response.raise_for_status()
+
+
+async def set_volume(volume_percent: int) -> None:
+    response = await _put("/me/player/volume", params={"volume_percent": volume_percent})
+    response.raise_for_status()
+
+
+async def add_to_queue(track_id: str) -> None:
+    response = await _post("/me/player/queue", params={"uri": f"spotify:track:{track_id}"})
     response.raise_for_status()

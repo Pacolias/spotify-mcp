@@ -131,6 +131,8 @@ uv run spotify-mcp login      # opens your browser, log in once
 
 (Installed with plain `pip`? Drop the `uv run` prefix — just `spotify-mcp login`.)
 
+> `login` opens a real browser window on the machine it runs on and waits for the OAuth redirect to reach `127.0.0.1`. Run it on your own local machine — it won't work over SSH or in a remote/headless sandbox with no browser to open.
+
 **`SPOTIFY_CLIENT_ID`**: [create a Spotify app](https://developer.spotify.com/dashboard) → add `http://127.0.0.1:8000/auth/callback` as a Redirect URI → check **Web API** → copy the Client ID (no secret needed, this uses PKCE) → paste into `.env`.
 
 **Register it with your MCP host:**

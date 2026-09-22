@@ -1,45 +1,54 @@
+import asyncio
+
 import httpx
 
 from spotify_mcp.spotify.auth import get_valid_access_token
 
 SPOTIFY_API_BASE = "https://api.spotify.com/v1"
 
+# Without an explicit timeout, a slow/hanging Spotify response would hang
+# the calling MCP tool indefinitely instead of failing with a clear error.
+_TIMEOUT = httpx.Timeout(10.0, connect=5.0)
+
+
+async def _request(
+    method: str, path: str, json: dict | None = None, params: dict | None = None
+) -> httpx.Response:
+    token = await get_valid_access_token()
+    async with httpx.AsyncClient(base_url=SPOTIFY_API_BASE, timeout=_TIMEOUT) as client:
+        request = client.build_request(
+            method, path, json=json, params=params, headers={"Authorization": f"Bearer {token}"}
+        )
+        response = await client.send(request)
+        if response.status_code == 429:
+            # Spotify's rate limit. Back off for as long as it tells us to,
+            # then retry once, instead of surfacing a raw 429 to the caller.
+            retry_after = float(response.headers.get("Retry-After", 1))
+            await asyncio.sleep(retry_after)
+            response = await client.send(request)
+        return response
+
 
 async def _get(path: str, params: dict | None = None) -> httpx.Response:
-    token = await get_valid_access_token()
-    async with httpx.AsyncClient(base_url=SPOTIFY_API_BASE) as client:
-        return await client.get(path, params=params, headers={"Authorization": f"Bearer {token}"})
+    return await _request("GET", path, params=params)
 
 
 async def _post(
     path: str, json: dict | None = None, params: dict | None = None
 ) -> httpx.Response:
-    token = await get_valid_access_token()
-    async with httpx.AsyncClient(base_url=SPOTIFY_API_BASE) as client:
-        return await client.post(
-            path, json=json, params=params, headers={"Authorization": f"Bearer {token}"}
-        )
+    return await _request("POST", path, json=json, params=params)
 
 
 async def _put(
     path: str, params: dict | None = None, json: dict | None = None
 ) -> httpx.Response:
-    token = await get_valid_access_token()
-    async with httpx.AsyncClient(base_url=SPOTIFY_API_BASE) as client:
-        return await client.put(
-            path, params=params, json=json, headers={"Authorization": f"Bearer {token}"}
-        )
+    return await _request("PUT", path, params=params, json=json)
 
 
 async def _delete(
     path: str, json: dict | None = None, params: dict | None = None
 ) -> httpx.Response:
-    token = await get_valid_access_token()
-    async with httpx.AsyncClient(base_url=SPOTIFY_API_BASE) as client:
-        request = client.build_request(
-            "DELETE", path, json=json, params=params, headers={"Authorization": f"Bearer {token}"}
-        )
-        return await client.send(request)
+    return await _request("DELETE", path, json=json, params=params)
 
 
 async def search_tracks(query: str, limit: int = 5) -> list[dict]:

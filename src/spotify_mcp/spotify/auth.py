@@ -27,6 +27,9 @@ router = APIRouter(prefix="/auth", tags=["auth"])
 SPOTIFY_AUTHORIZE_URL = "https://accounts.spotify.com/authorize"
 SPOTIFY_TOKEN_URL = "https://accounts.spotify.com/api/token"
 
+# See spotify/client.py for why this is set explicitly.
+_TIMEOUT = httpx.Timeout(10.0, connect=5.0)
+
 # Maps OAuth `state` -> PKCE code_verifier for the short window between
 # redirecting to Spotify and receiving the callback. An in-memory dict is
 # fine for a single-user, single-process app; a multi-worker deployment
@@ -99,7 +102,7 @@ async def callback(
     if code_verifier is None:
         raise HTTPException(status_code=400, detail="Unknown or expired state")
 
-    async with httpx.AsyncClient() as client:
+    async with httpx.AsyncClient(timeout=_TIMEOUT) as client:
         response = await client.post(
             SPOTIFY_TOKEN_URL,
             data={
@@ -129,7 +132,7 @@ async def callback(
 
 
 async def _refresh(token: SpotifyToken, session: Session) -> SpotifyToken:
-    async with httpx.AsyncClient() as client:
+    async with httpx.AsyncClient(timeout=_TIMEOUT) as client:
         response = await client.post(
             SPOTIFY_TOKEN_URL,
             data={

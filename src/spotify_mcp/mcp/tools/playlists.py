@@ -51,7 +51,11 @@ async def playlist_tracks(playlist_id: str, limit: int = 50) -> str:
 
 @mcp_server.tool()
 async def create_user_playlist(name: str, description: str = "", public: bool = False) -> str:
-    """Create a new playlist in the logged-in user's Spotify account."""
+    """Create a new playlist in the logged-in user's Spotify account.
+
+    ⚠️ `public=False` is currently ignored by Spotify's API — playlists are
+    created public regardless (confirmed bug on Spotify's side, not this
+    server; see journal entry 30)."""
     try:
         playlist = await create_playlist(name, description=description, public=public)
     except NotAuthenticatedError as exc:

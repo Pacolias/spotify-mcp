@@ -15,7 +15,11 @@ async def import_youtube_playlist(
     tracklist (no audio recognition); entries are skipped rather than
     guessed when the Spotify result's artist doesn't match the tracklist
     entry's artist (common for "unreleased"/"coming soon" tracks that
-    aren't on Spotify at all)."""
+    aren't on Spotify at all).
+
+    ⚠️ `public=False` is currently ignored by Spotify's API — playlists are
+    created public regardless (confirmed bug on Spotify's side, not this
+    server; see journal entry 30)."""
     try:
         entries = extract_tracklist(youtube_url)
     except Exception as exc:  # yt-dlp raises its own broad exception types

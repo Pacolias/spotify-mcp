@@ -188,6 +188,12 @@ async def create_playlist(name: str, description: str = "", public: bool = False
     # The documented POST /users/{user_id}/playlists now 403s; POST /me/playlists
     # works instead (and skips having to look up the user id first). Found by
     # checking the real API, not assumed from docs.
+    #
+    # `public: False` is sent correctly below but Spotify ignores it and
+    # creates the playlist public anyway — confirmed against the real API
+    # with the full scope already granted, and matches widely reported
+    # community bug threads. Not fixable client-side (a follow-up PUT to
+    # change-playlist-details doesn't honor it either); see journal entry 30.
     response = await _post(
         "/me/playlists",
         json={"name": name, "description": description, "public": public},

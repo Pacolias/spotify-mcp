@@ -31,3 +31,4 @@ Chronological log of architecture decisions and notable findings for `spotify-mc
 27. [`spotify://me/profile` and `spotify://me/dashboard` resources](27-profile-and-dashboard-resources.md)
 28. [Added MCP prompts: the third MCP primitive (build_playlist, listening_recap, import_youtube_mix)](28-mcp-prompts.md)
 29. [Two more prompts: start_listening, curate_from_liked — and a real pagination gap they surfaced](29-more-prompts-and-liked-songs-pagination.md)
+30. [`public=False` on playlist creation: confirmed Spotify-side bug, not fixable here](30-public-false-confirmed-spotify-bug.md)

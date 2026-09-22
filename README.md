@@ -65,11 +65,11 @@ graph TD
 | `recently_played` | Get the user's most recently played tracks. |
 | `list_user_playlists` | List the logged-in user's playlists. |
 | `playlist_tracks` | List the tracks in a playlist. |
-| `create_user_playlist` | Create a new playlist. |
+| `create_user_playlist` | Create a new playlist. ⚠️ `public=False` is currently ignored by a confirmed bug on Spotify's side — playlists are created public regardless. |
 | `add_tracks` | Add one or more tracks to a playlist. |
 | `remove_tracks` | Remove one or more tracks from a playlist. |
 | `find_playlists` | Discover existing curated Spotify playlists matching a query (name/owner/description only — can't read tracks of playlists you don't own). |
-| `import_youtube_playlist` | Build a new Spotify playlist from a YouTube video's tracklist (chapters/description — no audio recognition). |
+| `import_youtube_playlist` | Build a new Spotify playlist from a YouTube video's tracklist (chapters/description — no audio recognition). ⚠️ Same `public=False` limitation as `create_user_playlist`. |
 | `shuffle` | Turn shuffle mode on or off. |
 | `repeat_mode` | Set repeat mode (track/context/off). |
 | `seek` | Seek to a position in the currently playing track. |

@@ -28,6 +28,15 @@ build-backend = "uv_build"
 [tool.pytest.ini_options]
 asyncio_mode = "auto"
 
+[tool.coverage.run]
+source = ["src/spotify_mcp"]
+# cli.py is the login/serve entrypoint: exercised via subprocess and by
+# hand against real Spotify, not unit-tested — see journal entry 11.
+omit = ["src/spotify_mcp/cli.py"]
+
+[tool.coverage.report]
+fail_under = 78
+
 [tool.ruff]
 line-length = 100
 target-version = "py314"
@@ -45,6 +54,7 @@ dev = [
     "pre-commit>=4.6.2",
     "pytest>=9.1.1",
     "pytest-asyncio>=1.4.0",
+    "pytest-cov>=7.1.0",
     "respx>=0.23.1",
     "ruff>=0.16.8",
 ]

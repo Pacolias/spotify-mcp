@@ -40,3 +40,4 @@ Chronological log of architecture decisions and notable findings for `spotify-mc
 36. [pre-commit: ruff (check + format) plus basic hygiene hooks, run before each commit](36-pre-commit-hooks.md)
 37. [Dependabot: weekly update PRs for uv and GitHub Actions](37-dependabot.md)
 38. [Closing the MCP-tool-layer coverage gap, and enforcing coverage in CI](38-mcp-tool-layer-test-coverage.md)
+39. [mypy --strict, enforced in CI and pre-commit](39-mypy-strict.md)

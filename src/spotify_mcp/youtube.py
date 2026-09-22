@@ -73,8 +73,12 @@ def extract_tracklist(url: str) -> list[str]:
     the uploader added any) or, failing that, parsed out of the video
     description. Only works for videos that actually list their tracks —
     there's no audio recognition here."""
-    ydl_opts = {"quiet": True, "no_warnings": True, "skip_download": True, "noplaylist": True}
-    with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+    # yt-dlp's stubs type this against a private, fully-keyed TypedDict that
+    # a plain dict literal never structurally satisfies — not a real type
+    # error in these options, just a stub-strictness mismatch.
+    with yt_dlp.YoutubeDL(
+        {"quiet": True, "no_warnings": True, "skip_download": True, "noplaylist": True}  # type: ignore[arg-type]
+    ) as ydl:
         info = ydl.extract_info(url, download=False)
 
     chapters = info.get("chapters") or []

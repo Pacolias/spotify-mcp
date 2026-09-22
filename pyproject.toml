@@ -37,6 +37,12 @@ omit = ["src/spotify_mcp/cli.py"]
 [tool.coverage.report]
 fail_under = 78
 
+[tool.mypy]
+python_version = "3.14"
+files = ["src"]
+strict = true
+plugins = ["pydantic.mypy"]
+
 [tool.ruff]
 line-length = 100
 target-version = "py314"
@@ -51,10 +57,12 @@ select = ["E", "F", "I", "UP", "B"]
 
 [dependency-groups]
 dev = [
+    "mypy>=2.3.1",
     "pre-commit>=4.6.2",
     "pytest>=9.1.1",
     "pytest-asyncio>=1.4.0",
     "pytest-cov>=7.1.0",
     "respx>=0.23.1",
     "ruff>=0.16.8",
+    "types-yt-dlp>=2026.8.19.20260912",
 ]

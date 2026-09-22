@@ -1,4 +1,5 @@
 import asyncio
+from typing import Any
 
 import httpx
 
@@ -12,7 +13,7 @@ _TIMEOUT = httpx.Timeout(10.0, connect=5.0)
 
 
 async def _request(
-    method: str, path: str, json: dict | None = None, params: dict | None = None
+    method: str, path: str, json: dict[str, Any] | None = None, params: dict[str, Any] | None = None
 ) -> httpx.Response:
     token = await get_valid_access_token()
     async with httpx.AsyncClient(base_url=SPOTIFY_API_BASE, timeout=_TIMEOUT) as client:
@@ -29,25 +30,29 @@ async def _request(
         return response
 
 
-async def _get(path: str, params: dict | None = None) -> httpx.Response:
+async def _get(path: str, params: dict[str, Any] | None = None) -> httpx.Response:
     return await _request("GET", path, params=params)
 
 
-async def _post(path: str, json: dict | None = None, params: dict | None = None) -> httpx.Response:
+async def _post(
+    path: str, json: dict[str, Any] | None = None, params: dict[str, Any] | None = None
+) -> httpx.Response:
     return await _request("POST", path, json=json, params=params)
 
 
-async def _put(path: str, params: dict | None = None, json: dict | None = None) -> httpx.Response:
+async def _put(
+    path: str, params: dict[str, Any] | None = None, json: dict[str, Any] | None = None
+) -> httpx.Response:
     return await _request("PUT", path, params=params, json=json)
 
 
 async def _delete(
-    path: str, json: dict | None = None, params: dict | None = None
+    path: str, json: dict[str, Any] | None = None, params: dict[str, Any] | None = None
 ) -> httpx.Response:
     return await _request("DELETE", path, json=json, params=params)
 
 
-async def search_tracks(query: str, limit: int = 5) -> list[dict]:
+async def search_tracks(query: str, limit: int = 5) -> list[dict[str, Any]]:
     response = await _get("/search", params={"q": query, "type": "track", "limit": limit})
     response.raise_for_status()
     items = response.json()["tracks"]["items"]
@@ -63,7 +68,7 @@ async def search_tracks(query: str, limit: int = 5) -> list[dict]:
     ]
 
 
-async def search_playlists(query: str, limit: int = 5) -> list[dict]:
+async def search_playlists(query: str, limit: int = 5) -> list[dict[str, Any]]:
     response = await _get("/search", params={"q": query, "type": "playlist", "limit": limit})
     response.raise_for_status()
     items = response.json()["playlists"]["items"]
@@ -80,7 +85,7 @@ async def search_playlists(query: str, limit: int = 5) -> list[dict]:
     ]
 
 
-async def get_currently_playing() -> dict | None:
+async def get_currently_playing() -> dict[str, Any] | None:
     response = await _get("/me/player/currently-playing")
     if response.status_code == 204:
         # Spotify's documented way of saying "nothing is playing right now".
@@ -103,7 +108,7 @@ async def get_currently_playing() -> dict | None:
     }
 
 
-async def get_top_tracks(limit: int = 10, time_range: str = "medium_term") -> list[dict]:
+async def get_top_tracks(limit: int = 10, time_range: str = "medium_term") -> list[dict[str, Any]]:
     # time_range: short_term (~4 weeks), medium_term (~6 months), long_term (years).
     response = await _get("/me/top/tracks", params={"limit": limit, "time_range": time_range})
     response.raise_for_status()
@@ -120,7 +125,7 @@ async def get_top_tracks(limit: int = 10, time_range: str = "medium_term") -> li
     ]
 
 
-async def get_top_artists(limit: int = 10, time_range: str = "medium_term") -> list[dict]:
+async def get_top_artists(limit: int = 10, time_range: str = "medium_term") -> list[dict[str, Any]]:
     response = await _get("/me/top/artists", params={"limit": limit, "time_range": time_range})
     response.raise_for_status()
     items = response.json()["items"]
@@ -135,7 +140,7 @@ async def get_top_artists(limit: int = 10, time_range: str = "medium_term") -> l
     ]
 
 
-async def get_recently_played(limit: int = 10) -> list[dict]:
+async def get_recently_played(limit: int = 10) -> list[dict[str, Any]]:
     response = await _get("/me/player/recently-played", params={"limit": limit})
     response.raise_for_status()
     items = response.json()["items"]
@@ -151,7 +156,7 @@ async def get_recently_played(limit: int = 10) -> list[dict]:
     ]
 
 
-async def list_playlists(limit: int = 20) -> list[dict]:
+async def list_playlists(limit: int = 20) -> list[dict[str, Any]]:
     response = await _get("/me/playlists", params={"limit": limit})
     response.raise_for_status()
     items = response.json()["items"]
@@ -170,7 +175,7 @@ async def list_playlists(limit: int = 20) -> list[dict]:
     ]
 
 
-async def get_playlist_tracks(playlist_id: str, limit: int = 50) -> list[dict]:
+async def get_playlist_tracks(playlist_id: str, limit: int = 50) -> list[dict[str, Any]]:
     # The sub-resource endpoint is /items, not /tracks (which now 403s), and
     # each entry's track fields live directly under "item", not "item.track".
     # Both found by checking the real response, not assumed from docs.
@@ -189,7 +194,7 @@ async def get_playlist_tracks(playlist_id: str, limit: int = 50) -> list[dict]:
     ]
 
 
-async def create_playlist(name: str, description: str = "", public: bool = False) -> dict:
+async def create_playlist(name: str, description: str = "", public: bool = False) -> dict[str, Any]:
     # The documented POST /users/{user_id}/playlists now 403s; POST /me/playlists
     # works instead (and skips having to look up the user id first). Found by
     # checking the real API, not assumed from docs.
@@ -293,7 +298,7 @@ async def seek_to_position(position_ms: int) -> None:
     _raise_for_playback_error(response)
 
 
-async def get_saved_tracks(limit: int = 20, offset: int = 0) -> list[dict]:
+async def get_saved_tracks(limit: int = 20, offset: int = 0) -> list[dict[str, Any]]:
     # Spotify caps limit at 50 per call; page through with offset for more.
     response = await _get("/me/tracks", params={"limit": limit, "offset": offset})
     response.raise_for_status()
@@ -338,7 +343,7 @@ async def remove_saved_tracks(track_ids: list[str]) -> None:
     _raise_for_api_error(response)
 
 
-async def get_devices() -> list[dict]:
+async def get_devices() -> list[dict[str, Any]]:
     response = await _get("/me/player/devices")
     _raise_for_api_error(response)
     return [
@@ -358,7 +363,7 @@ async def transfer_playback(device_id: str, play: bool = True) -> None:
     _raise_for_playback_error(response)
 
 
-async def get_current_user_profile() -> dict:
+async def get_current_user_profile() -> dict[str, Any]:
     response = await _get("/me")
     response.raise_for_status()
     payload = response.json()

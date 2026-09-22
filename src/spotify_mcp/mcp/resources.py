@@ -15,7 +15,7 @@ from spotify_mcp.spotify.client import (
 
 
 @mcp_server.resource("spotify://me/now-playing", mime_type="application/json")
-async def now_playing_resource() -> dict:
+async def now_playing_resource() -> dict[str, Any]:
     """The track currently playing on the logged-in user's account, if any."""
     try:
         playing = await get_currently_playing()
@@ -26,7 +26,7 @@ async def now_playing_resource() -> dict:
 
 
 @mcp_server.resource("spotify://me/playlists", mime_type="application/json")
-async def playlists_resource() -> dict:
+async def playlists_resource() -> dict[str, Any]:
     """The logged-in user's Spotify playlists."""
     try:
         results = await list_playlists(limit=50)
@@ -37,7 +37,7 @@ async def playlists_resource() -> dict:
 
 
 @mcp_server.resource("spotify://playlist/{playlist_id}", mime_type="application/json")
-async def playlist_resource(playlist_id: str) -> dict:
+async def playlist_resource(playlist_id: str) -> dict[str, Any]:
     """The tracks in a specific playlist."""
     try:
         results = await get_playlist_tracks(playlist_id, limit=100)
@@ -48,7 +48,7 @@ async def playlist_resource(playlist_id: str) -> dict:
 
 
 @mcp_server.resource("spotify://me/profile", mime_type="application/json")
-async def profile_resource() -> dict:
+async def profile_resource() -> dict[str, Any]:
     """The logged-in user's basic Spotify profile (id, display name,
     follower count, profile URL/image)."""
     try:
@@ -67,7 +67,7 @@ async def _best_effort(coro: Coroutine[Any, Any, Any]) -> Any:
 
 
 @mcp_server.resource("spotify://me/dashboard", mime_type="application/json")
-async def dashboard_resource() -> dict:
+async def dashboard_resource() -> dict[str, Any]:
     """A one-shot snapshot of the user's Spotify state — what's playing,
     available devices, top tracks, and recently played — everything a host
     might want to show at a glance, without several separate tool calls."""

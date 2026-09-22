@@ -180,6 +180,7 @@ Tests run against an isolated, throwaway SQLite database and mocked Spotify API 
 ```bash
 uv run ruff check .      # lint
 uv run ruff format .     # format
+uv run mypy              # type check
 ```
 
 Both run in CI (see the badge above). To run them automatically before each commit:

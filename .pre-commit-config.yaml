@@ -13,3 +13,16 @@ repos:
       - id: ruff-check
         args: [--fix]
       - id: ruff-format
+
+  - repo: local
+    hooks:
+      - id: mypy
+        name: mypy
+        # Runs through the project's own venv (language: system) instead of
+        # pre-commit's isolated mypy env, so it sees the same installed
+        # library types (fastapi, sqlmodel, pydantic, ...) as CI does —
+        # avoids duplicating that dependency list via additional_dependencies.
+        entry: uv run mypy
+        language: system
+        pass_filenames: false
+        types: [python]

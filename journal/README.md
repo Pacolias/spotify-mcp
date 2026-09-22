@@ -38,3 +38,4 @@ Chronological log of architecture decisions and notable findings for `spotify-mc
 34. [HTTP timeout and 429 rate-limit retry on all Spotify API calls](34-http-timeout-and-rate-limit-retry.md)
 35. [Ruff: linting and formatting, enforced in CI](35-ruff-lint-and-format.md)
 36. [pre-commit: ruff (check + format) plus basic hygiene hooks, run before each commit](36-pre-commit-hooks.md)
+37. [Dependabot: weekly update PRs for uv and GitHub Actions](37-dependabot.md)

@@ -16,6 +16,5 @@ async def search_track(query: str, limit: int = 5) -> str:
         return f"No tracks found for '{query}'."
 
     return "\n".join(
-        f"{r['name']} — {', '.join(r['artists'])} ({r['album']}) — id: {r['id']}"
-        for r in results
+        f"{r['name']} — {', '.join(r['artists'])} ({r['album']}) — id: {r['id']}" for r in results
     )

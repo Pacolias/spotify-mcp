@@ -1,16 +1,8 @@
+import asyncio
 import base64
 import hashlib
 import secrets
 from datetime import UTC, datetime, timedelta
-
-
-def _utcnow() -> datetime:
-    # Naive UTC on purpose: SQLite has no timezone-aware datetime type, so a
-    # tz-aware value written here comes back naive on read, and Python can't
-    # compare naive and aware datetimes. Keeping everything naive-but-UTC
-    # avoids that mismatch.
-    return datetime.now(UTC).replace(tzinfo=None)
-import asyncio
 from urllib.parse import urlencode
 
 import httpx
@@ -21,6 +13,15 @@ from sqlmodel import Session
 from spotify_mcp.config import settings
 from spotify_mcp.db.models import SpotifyToken
 from spotify_mcp.db.session import engine
+
+
+def _utcnow() -> datetime:
+    # Naive UTC on purpose: SQLite has no timezone-aware datetime type, so a
+    # tz-aware value written here comes back naive on read, and Python can't
+    # compare naive and aware datetimes. Keeping everything naive-but-UTC
+    # avoids that mismatch.
+    return datetime.now(UTC).replace(tzinfo=None)
+
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 

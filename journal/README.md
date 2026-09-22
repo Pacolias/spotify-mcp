@@ -36,3 +36,4 @@ Chronological log of architecture decisions and notable findings for `spotify-mc
 32. [Closing the journal-11 gap: tests through a real MCP protocol session](32-mcp-protocol-integration-tests.md)
 33. [License (MIT), author attribution, and a text-based usage example](33-license-and-readme-polish.md)
 34. [HTTP timeout and 429 rate-limit retry on all Spotify API calls](34-http-timeout-and-rate-limit-retry.md)
+35. [Ruff: linting and formatting, enforced in CI](35-ruff-lint-and-format.md)

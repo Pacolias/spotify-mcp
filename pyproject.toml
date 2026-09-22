@@ -28,9 +28,22 @@ build-backend = "uv_build"
 [tool.pytest.ini_options]
 asyncio_mode = "auto"
 
+[tool.ruff]
+line-length = 100
+target-version = "py314"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B"]
+
+[tool.ruff.lint.per-file-ignores]
+# Prose prompt text reads worse wrapped mid-sentence than left a few chars
+# over the limit.
+"src/spotify_mcp/mcp/prompts.py" = ["E501"]
+
 [dependency-groups]
 dev = [
     "pytest>=9.1.1",
     "pytest-asyncio>=1.4.0",
     "respx>=0.23.1",
+    "ruff>=0.16.8",
 ]

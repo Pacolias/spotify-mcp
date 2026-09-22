@@ -16,8 +16,8 @@ def ping() -> str:
 from spotify_mcp.mcp import prompts, resources  # noqa: E402, F401
 from spotify_mcp.mcp.tools import (  # noqa: E402, F401
     library,
-    playback,
     personal,
+    playback,
     playlists,
     search,
     youtube,

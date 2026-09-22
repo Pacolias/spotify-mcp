@@ -109,7 +109,9 @@ async def test_pause_playback_raises_with_spotify_error_message(logged_in) -> No
 
 @respx.mock
 async def test_set_shuffle_sends_state_param(logged_in) -> None:
-    route = respx.put(f"{SPOTIFY_API_BASE}/me/player/shuffle").mock(return_value=httpx.Response(200))
+    route = respx.put(f"{SPOTIFY_API_BASE}/me/player/shuffle").mock(
+        return_value=httpx.Response(200)
+    )
 
     await set_shuffle(True)
 

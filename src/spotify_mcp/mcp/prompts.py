@@ -43,7 +43,9 @@ def import_youtube_mix(youtube_url: str, playlist_name: str = "") -> str:
 def start_listening(device_hint: str = "") -> str:
     """Get music playing: check what's already active, or help pick a
     device if nothing is."""
-    device_clause = f' (I probably mean a device with "{device_hint}" in its name)' if device_hint else ""
+    device_clause = (
+        f' (I probably mean a device with "{device_hint}" in its name)' if device_hint else ""
+    )
     return (
         "Get some music playing for me. First check now_playing — if something's already playing, "
         "just tell me what it is and leave it alone. If nothing's playing, use list_devices to see "
@@ -59,9 +61,11 @@ def start_listening(device_hint: str = "") -> str:
 def curate_from_liked(criteria: str, num_songs: int = 15, playlist_name: str = "") -> str:
     """Build a new playlist from a subset of the user's Liked Songs that
     fits some criteria (mood, era, genre feel, ...)."""
-    name_clause = f' called "{playlist_name}"' if playlist_name else ' with a name that fits the theme'
+    name_clause = (
+        f' called "{playlist_name}"' if playlist_name else " with a name that fits the theme"
+    )
     return (
-        f'Build me a new Spotify playlist{name_clause}, made from songs already in my Liked Songs '
+        f"Build me a new Spotify playlist{name_clause}, made from songs already in my Liked Songs "
         f'that fit: "{criteria}". Aim for about {num_songs} tracks.\n\n'
         "Use liked_songs to look through my library — I may have hundreds or thousands of saved "
         "tracks, so call it more than once with an increasing offset (50 at a time) to see a good "

@@ -67,6 +67,4 @@ async def test_import_youtube_playlist_skips_artist_mismatches(monkeypatch, logg
 
     import json
 
-    assert json.loads(add_route.calls.last.request.content) == {
-        "uris": ["spotify:track:t1"]
-    }
+    assert json.loads(add_route.calls.last.request.content) == {"uris": ["spotify:track:t1"]}

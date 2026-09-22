@@ -33,15 +33,11 @@ async def _get(path: str, params: dict | None = None) -> httpx.Response:
     return await _request("GET", path, params=params)
 
 
-async def _post(
-    path: str, json: dict | None = None, params: dict | None = None
-) -> httpx.Response:
+async def _post(path: str, json: dict | None = None, params: dict | None = None) -> httpx.Response:
     return await _request("POST", path, json=json, params=params)
 
 
-async def _put(
-    path: str, params: dict | None = None, json: dict | None = None
-) -> httpx.Response:
+async def _put(path: str, params: dict | None = None, json: dict | None = None) -> httpx.Response:
     return await _request("PUT", path, params=params, json=json)
 
 
@@ -282,9 +278,7 @@ async def add_to_queue(track_id: str) -> None:
 
 
 async def set_shuffle(enabled: bool) -> None:
-    response = await _put(
-        "/me/player/shuffle", params={"state": "true" if enabled else "false"}
-    )
+    response = await _put("/me/player/shuffle", params={"state": "true" if enabled else "false"})
     _raise_for_playback_error(response)
 
 

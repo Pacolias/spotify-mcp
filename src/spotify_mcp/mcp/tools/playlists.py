@@ -26,7 +26,7 @@ async def list_user_playlists(limit: int = 20) -> str:
         return "No playlists found."
 
     return "\n".join(
-        f"{p['name']} ({p['track_count']} tracks, {'public' if p['public'] else 'private'}) — id: {p['id']}"
+        f"{p['name']} ({p['track_count']} tracks, {'public' if p['public'] else 'private'}) — id: {p['id']}"  # noqa: E501
         for p in results
     )
 
@@ -44,9 +44,7 @@ async def playlist_tracks(playlist_id: str, limit: int = 50) -> str:
     if not results:
         return "This playlist has no tracks."
 
-    return "\n".join(
-        f"{t['name']} — {', '.join(t['artists'])} — id: {t['id']}" for t in results
-    )
+    return "\n".join(f"{t['name']} — {', '.join(t['artists'])} — id: {t['id']}" for t in results)
 
 
 @mcp_server.tool()

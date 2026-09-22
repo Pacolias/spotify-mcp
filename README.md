@@ -175,6 +175,19 @@ uv run pytest
 
 Tests run against an isolated, throwaway SQLite database and mocked Spotify API responses — they never touch a real Spotify account or the local `spotify_mcp.db`. See [journal entry 11](journal/11-test-suite.md) for details.
 
+## Linting and formatting
+
+```bash
+uv run ruff check .      # lint
+uv run ruff format .     # format
+```
+
+Both run in CI (see the badge above). To run them automatically before each commit:
+
+```bash
+uv run pre-commit install
+```
+
 ## License
 
 [MIT](LICENSE) — see the license file for details.

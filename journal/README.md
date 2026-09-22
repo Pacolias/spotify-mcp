@@ -33,3 +33,4 @@ Chronological log of architecture decisions and notable findings for `spotify-mc
 29. [Two more prompts: start_listening, curate_from_liked — and a real pagination gap they surfaced](29-more-prompts-and-liked-songs-pagination.md)
 30. [`public=False` on playlist creation: confirmed Spotify-side bug, not fixable here](30-public-false-confirmed-spotify-bug.md)
 31. [CI: GitHub Actions running the test suite on every push/PR](31-ci-workflow.md)
+32. [Closing the journal-11 gap: tests through a real MCP protocol session](32-mcp-protocol-integration-tests.md)

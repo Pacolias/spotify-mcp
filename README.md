@@ -1,5 +1,7 @@
 # spotify-mcp
 
+[![Tests](https://github.com/Pacolias/spotify-mcp/actions/workflows/tests.yml/badge.svg)](https://github.com/Pacolias/spotify-mcp/actions/workflows/tests.yml)
+
 An MCP (Model Context Protocol) server for interacting with the Spotify Web API, built with Python and FastAPI. Runs locally — an MCP host (Claude Desktop, Claude Code, etc.) launches it as a subprocess on your own machine.
 
 This is a portfolio project. The reasoning behind every architecture decision — and why — is logged in [`journal/`](journal/), one entry per decision, in the order they were made.

@@ -1,10 +1,19 @@
 # spotify-mcp
 
 [![Tests](https://github.com/Pacolias/spotify-mcp/actions/workflows/tests.yml/badge.svg)](https://github.com/Pacolias/spotify-mcp/actions/workflows/tests.yml)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
 An MCP (Model Context Protocol) server for interacting with the Spotify Web API, built with Python and FastAPI. Runs locally — an MCP host (Claude Desktop, Claude Code, etc.) launches it as a subprocess on your own machine.
 
-This is a portfolio project. The reasoning behind every architecture decision — and why — is logged in [`journal/`](journal/), one entry per decision, in the order they were made.
+This is a portfolio project by [Paco Molina](https://pacomolina.dev). The reasoning behind every architecture decision — and why — is logged in [`journal/`](journal/), one entry per decision, in the order they were made.
+
+## Example
+
+A real exchange with `import_youtube_playlist`, pulling new tracks from a YouTube mix's chapter list into an existing Spotify playlist (see [journal entry 24](journal/24-youtube-playlist-import.md) for the full story):
+
+> **You:** Pull any new songs from this YouTube mix into my "Chill" playlist: youtube.com/watch?v=...
+>
+> **Claude:** *(calls `import_youtube_playlist`)* Found 14 tracklist entries in the video's chapters. 7 matched confidently on Spotify and were added; 7 were skipped — 4 pointed at the same wrong song (likely unreleased tracks not on Spotify), 2 didn't match any plausible artist, and 1 was a non-track marker ("LOOP"). Your playlist went from 3 to 10 tracks.
 
 ## How it works
 
@@ -165,3 +174,11 @@ uv run pytest
 ```
 
 Tests run against an isolated, throwaway SQLite database and mocked Spotify API responses — they never touch a real Spotify account or the local `spotify_mcp.db`. See [journal entry 11](journal/11-test-suite.md) for details.
+
+## License
+
+[MIT](LICENSE) — see the license file for details.
+
+## Author
+
+Built by [Paco Molina](https://pacomolina.dev).

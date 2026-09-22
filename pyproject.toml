@@ -5,6 +5,7 @@ description = "An MCP server for the Spotify Web API, built with Python and Fast
 authors = [
     { name = "Pacolias", email = "pacomolinac2003@gmail.com" }
 ]
+license = "MIT"
 requires-python = ">=3.14"
 dependencies = [
     "fastapi>=0.141.1",

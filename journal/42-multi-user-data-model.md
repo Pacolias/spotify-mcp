@@ -82,6 +82,16 @@ With HS256 the key is a single secret, and whoever holds it can forge valid toke
 
 **Decision: A (PyJWT).** It will be declared as a **direct** dependency in `pyproject.toml` rather than relied on transitively, so the code doesn't break silently if the MCP SDK ever drops it.
 
+## 3. Refresh token format: opaque random string
+
+The refresh token is only used at the token endpoint, roughly once an hour, and it's rotated on every use. Because revocation works by invalidating it in the database (2c), **every refresh token has a database row whatever its format**, and that row decides whether it's still valid.
+
+**Options:**
+- **A. Opaque random string:** looked up (by hash, see 4) in the database, where the row holds the user, client, expiry and validity. One mechanism and one source of truth, and a stolen token reveals nothing.
+- **B. JWT as well:** a single token format across the system, and forged or malformed tokens get rejected by signature before touching the database. But the database row would still be needed for revocation and rotation, so the claims would be duplicated in the token and the row (two mechanisms for one job). The payload would be readable, and it would be signed with the same key as the access tokens.
+
+**Decision: A.** Each token gets the format that matches how it's verified. The access token is checked on every request, so it's a JWT verified by signature. The refresh token always goes through the database to support revocation, so being a JWT would add nothing. This matches common practice (Auth0, Okta and Google issue opaque refresh tokens), keeps the database row as the single source of truth, and is consistent with the revocation design in 2c.
+
 ## 4. Refresh tokens and authorization codes are stored hashed (SHA-256)
 
 These are the tokens the server has to keep in the database: refresh tokens, so they can be revoked and rotated (see 2c), and authorization codes (single-use, short-lived). The database is SQLite, so a single file on the server. Anyone who gets a copy of it (an exposed backup, a hosting misconfiguration) gets everything inside.

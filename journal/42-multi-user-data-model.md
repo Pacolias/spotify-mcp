@@ -28,4 +28,23 @@ The access token is what the MCP host sends with every request (`Authorization: 
 
 **Trade-off accepted, stated honestly:** JWT's main technical advantage (verifying without a database, across many servers) doesn't pay off at this project's scale. There are 5 users and one server, and every tool call reads the user's Spotify tokens from the database anyway. The choice is driven by learning and portfolio value, not by a scaling need. Revocation has to be handled explicitly (see the sub-decisions below).
 
-**Sub-decisions still open:** signing algorithm (symmetric, e.g. HS256, vs. asymmetric, e.g. RS256/ES256), access token lifetime, revocation strategy, where the signing key lives, and which JWT library to use.
+**Sub-decisions still open:** revocation strategy, where the signing key lives, and which JWT library to use.
+
+### 2a. Signing algorithm: HS256 (symmetric)
+
+**Options:**
+- **A. Symmetric (HS256):** one secret key both signs and verifies. The simplest setup: a single random secret. The downside is that anyone able to verify can also forge, so the key could never be shared with another verifying service.
+- **B. Asymmetric (RS256/ES256):** a private key signs, and a public key (usually published as a JWKS at `/.well-known/jwks.json`) verifies. It's what identity providers use, and it would have brought public-key crypto, JWKS and `kid`-based key rotation into the project, at the cost of a key pair to generate, store and configure.
+
+**Decision: A (HS256).** In this project the issuer and the verifier are the same server, so no other party ever needs to verify our tokens. Trade-off accepted: asymmetric signing, JWKS and key rotation are left out of what the project demonstrates.
+
+### 2b. Access token lifetime: about 1 hour
+
+The MCP host also gets a refresh token and renews the access token automatically when it expires, so the lifetime affects security, not user experience.
+
+**Options:**
+- **A. Short (5–15 min):** a stolen token is only useful briefly, and revoking a user's refresh token is enough to cut them off within minutes, with no revocation list needed.
+- **B. Medium (~1 hour):** a common industry value, with fewer refreshes.
+- **C. Long (days):** almost no refreshes, but a stolen token lives for days, which in practice forces a revocation list checked on every request.
+
+**Decision: B (~1 hour).** Trade-off accepted: a stolen or revoked access token keeps working for up to an hour, unless the revocation strategy (still open) adds an immediate cut-off.

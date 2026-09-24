@@ -81,3 +81,13 @@ With HS256 the key is a single secret, and whoever holds it can forge valid toke
 - **D. Hand-rolled with `hmac`/`hashlib`:** very instructive, but it's hand-written security code (constant-time signature comparison, strict algorithm and expiry validation), which is where vulnerabilities come from.
 
 **Decision: A (PyJWT).** It will be declared as a **direct** dependency in `pyproject.toml` rather than relied on transitively, so the code doesn't break silently if the MCP SDK ever drops it.
+
+## 4. Refresh tokens and authorization codes are stored hashed (SHA-256)
+
+These are the tokens the server has to keep in the database: refresh tokens, so they can be revoked and rotated (see 2c), and authorization codes (single-use, short-lived). The database is SQLite, so a single file on the server. Anyone who gets a copy of it (an exposed backup, a hosting misconfiguration) gets everything inside.
+
+**Options:**
+- **A. Store them as-is:** the simplest option, and tokens are visible when debugging. But a copied database would give away valid refresh tokens, which could be exchanged for access tokens to use the tools as any user until they expire or are revoked.
+- **B. Store only a SHA-256 hash:** when a token is presented, hash it and look up the hash. A copied database yields only useless hashes. It costs a few lines of code, and the original token can never be shown again (it never needs to be).
+
+**Decision: B, for both refresh tokens and authorization codes.** A fast hash (SHA-256) is the standard here, not a slow password hash (bcrypt/argon2): slow hashes exist to resist guessing of weak, human-chosen passwords, while these tokens are long random values that can't be guessed.

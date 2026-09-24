@@ -28,7 +28,7 @@ The access token is what the MCP host sends with every request (`Authorization: 
 
 **Trade-off accepted, stated honestly:** JWT's main technical advantage (verifying without a database, across many servers) doesn't pay off at this project's scale. There are 5 users and one server, and every tool call reads the user's Spotify tokens from the database anyway. The choice is driven by learning and portfolio value, not by a scaling need. Revocation has to be handled explicitly (see the sub-decisions below).
 
-**Sub-decisions still open:** revocation strategy, where the signing key lives, and which JWT library to use.
+**Sub-decisions still open:** where the signing key lives, and which JWT library to use.
 
 ### 2a. Signing algorithm: HS256 (symmetric)
 
@@ -48,3 +48,16 @@ The MCP host also gets a refresh token and renews the access token automatically
 - **C. Long (days):** almost no refreshes, but a stolen token lives for days, which in practice forces a revocation list checked on every request.
 
 **Decision: B (~1 hour).** Trade-off accepted: a stolen or revoked access token keeps working for up to an hour, unless the revocation strategy (still open) adds an immediate cut-off.
+
+### 2c. Revocation: no immediate cut-off for access tokens
+
+Revoking means invalidating a token before it expires. Here that would happen when removing a user (e.g. to free one of the 5 slots), when the user disconnects the server from their MCP host (the SDK provides a `/revoke` endpoint), or if a token is suspected stolen.
+
+**Options:**
+- **A. No immediate cut-off:** revoking only invalidates the refresh token. The access token keeps working until it expires (at most ~1 hour, per 2b), and the next refresh then fails. Verifying an access token never touches the database.
+- **B. Denylist:** every JWT carries a unique `jti`. Revoked `jti`s go in a table that's checked on every request. The cut-off is immediate and per token (one device), at the cost of a new table and a database check per request. Entries can be purged once the token would have expired anyway.
+- **C. Per-user "tokens valid after" timestamp:** a column on the users table. Tokens whose `iat` is older are rejected. The cut-off is immediate for all of a user's tokens at once ("log out everywhere"), with one column and no new table, at the cost of a database check per request.
+
+**Decision: A.** At this scale (5 users, all known personally) a window of at most one hour is acceptable, and there is already an emergency cut-off: deleting a user's Spotify tokens makes every tool call fail immediately, even though their JWT still verifies. A is also the easiest option to understand and explain, and it keeps the JWT choice coherent: tokens are verified purely by signature. With B or C, the obvious question is "why JWT if you hit the database anyway?".
+
+**If requirements change:** if an immediate cut-off were needed (more users, more sensitive data), C is the next step, as it needs one column on the users table.

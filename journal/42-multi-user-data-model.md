@@ -28,7 +28,7 @@ The access token is what the MCP host sends with every request (`Authorization: 
 
 **Trade-off accepted, stated honestly:** JWT's main technical advantage (verifying without a database, across many servers) doesn't pay off at this project's scale. There are 5 users and one server, and every tool call reads the user's Spotify tokens from the database anyway. The choice is driven by learning and portfolio value, not by a scaling need. Revocation has to be handled explicitly (see the sub-decisions below).
 
-**Sub-decisions still open:** where the signing key lives, and which JWT library to use.
+**Sub-decisions:** all resolved below (2a–2e).
 
 ### 2a. Signing algorithm: HS256 (symmetric)
 
@@ -71,3 +71,13 @@ With HS256 the key is a single secret, and whoever holds it can forge valid toke
 - **B. Secrets manager** (AWS Secrets Manager, Vault, Doppler...): access auditing and easier rotation, as large companies do. Downsides: another external service, possibly paid, that the server depends on to start. Heavy for 5 users.
 
 **Decision: A.** It reuses the existing configuration mechanism and fits the project's scale.
+
+### 2e. JWT library: PyJWT
+
+**Options:**
+- **A. PyJWT:** the most widely used Python JWT library, focused only on JWT (`jwt.encode` / `jwt.decode`), and used in FastAPI's docs. It's already in the environment as a transitive dependency of the MCP SDK (`mcp[crypto]` → `pyjwt[crypto]`).
+- **B. Authlib / joserfc:** a full OAuth + JOSE suite (JWT, JWE, JWK...). Much broader, but a new dependency, and much of it overlaps with the OAuth endpoints the MCP SDK already provides.
+- **C. python-jose:** common in older tutorials, but it went years with little maintenance and had known security vulnerabilities, which is why FastAPI's docs moved to PyJWT.
+- **D. Hand-rolled with `hmac`/`hashlib`:** very instructive, but it's hand-written security code (constant-time signature comparison, strict algorithm and expiry validation), which is where vulnerabilities come from.
+
+**Decision: A (PyJWT).** It will be declared as a **direct** dependency in `pyproject.toml` rather than relied on transitively, so the code doesn't break silently if the MCP SDK ever drops it.

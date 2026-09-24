@@ -61,3 +61,13 @@ Revoking means invalidating a token before it expires. Here that would happen wh
 **Decision: A.** At this scale (5 users, all known personally) a window of at most one hour is acceptable, and there is already an emergency cut-off: deleting a user's Spotify tokens makes every tool call fail immediately, even though their JWT still verifies. A is also the easiest option to understand and explain, and it keeps the JWT choice coherent: tokens are verified purely by signature. With B or C, the obvious question is "why JWT if you hit the database anyway?".
 
 **If requirements change:** if an immediate cut-off were needed (more users, more sensitive data), C is the next step, as it needs one column on the users table.
+
+### 2d. Signing key storage: environment variable
+
+With HS256 the key is a single secret, and whoever holds it can forge valid tokens for any user, so it's the most sensitive value on the server. It must be random and at least 256 bits long (required by the HS256 spec, not a choice).
+
+**Options:**
+- **A. Environment variable:** `.env` locally (already git-ignored), and the hosting platform's secrets settings in production. It's the standard 12-factor pattern and the way `SPOTIFY_CLIENT_ID` is already loaded (`src/spotify_mcp/config.py`), so nothing new is added. Downsides: it can leak into logs or error dumps if code is careless, and changing it means a restart that invalidates every issued access token.
+- **B. Secrets manager** (AWS Secrets Manager, Vault, Doppler...): access auditing and easier rotation, as large companies do. Downsides: another external service, possibly paid, that the server depends on to start. Heavy for 5 users.
+
+**Decision: A.** It reuses the existing configuration mechanism and fits the project's scale.

@@ -43,3 +43,4 @@ Chronological log of architecture decisions and notable findings for `spotify-mc
 39. [mypy --strict, enforced in CI and pre-commit](39-mypy-strict.md)
 40. [Direction change: remote MCP server, no monetization (Spotify 5-user cap and policy)](40-remote-mcp-no-monetization.md)
 41. [MCP authorization: our server is the authorization server, built on the SDK's provider interface](41-mcp-authorization-server-via-sdk.md)
+42. [Multi-user data model for the remote MCP server](42-multi-user-data-model.md)

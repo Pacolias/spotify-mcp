@@ -13,6 +13,7 @@ jobs:
       # to the real Spotify API (isolated DB + mocked responses — see
       # journal entry 11), so a placeholder value is fine here.
       SPOTIFY_CLIENT_ID: ci-placeholder
+      JWT_SIGNING_KEY: ci-placeholder-signing-key-at-least-32-bytes
     steps:
       - uses: actions/checkout@v4
 

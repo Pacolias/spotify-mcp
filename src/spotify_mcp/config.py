@@ -1,6 +1,6 @@
 import sys
 
-from pydantic import ValidationError
+from pydantic import ValidationError, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -30,6 +30,21 @@ class Settings(BaseSettings):
     )
 
     database_url: str = "sqlite:///./spotify_mcp.db"
+
+    # Secret used to sign (HS256) the JWT access tokens this server issues to
+    # MCP clients. Whoever has it can forge a token for any user.
+    jwt_signing_key: str
+
+    @field_validator("jwt_signing_key")
+    @classmethod
+    def _signing_key_long_enough(cls, value: str) -> str:
+        # HS256 needs a key at least as long as its hash output: 256 bits.
+        if len(value.encode()) < 32:
+            raise ValueError(
+                "must be at least 32 bytes (256 bits). Generate one with:\n"
+                '    python -c "import secrets; print(secrets.token_urlsafe(32))"'
+            )
+        return value
 
 
 def _load_settings() -> Settings:

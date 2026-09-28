@@ -136,7 +136,7 @@ pip install -r requirements.txt     # or with plain pip — kept in sync with py
 **2. Configure and log in:**
 
 ```bash
-cp .env.example .env          # then set SPOTIFY_CLIENT_ID in .env — see below
+cp .env.example .env          # then set SPOTIFY_CLIENT_ID and JWT_SIGNING_KEY in .env — see below
 uv run spotify-mcp login      # opens your browser, log in once
 ```
 
@@ -145,6 +145,8 @@ uv run spotify-mcp login      # opens your browser, log in once
 > `login` opens a real browser window on the machine it runs on and waits for the OAuth redirect to reach `127.0.0.1`. Run it on your own local machine — it won't work over SSH or in a remote/headless sandbox with no browser to open.
 
 **`SPOTIFY_CLIENT_ID`**: [create a Spotify app](https://developer.spotify.com/dashboard) → add `http://127.0.0.1:8000/auth/callback` as a Redirect URI → check **Web API** → copy the Client ID (no secret needed, this uses PKCE) → paste into `.env`.
+
+**`JWT_SIGNING_KEY`**: a random secret of at least 32 bytes, used to sign the access tokens this server issues. Generate one with `python -c "import secrets; print(secrets.token_urlsafe(32))"` and paste it into `.env`.
 
 **Register it with your MCP host:**
 

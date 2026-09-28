@@ -31,6 +31,12 @@ class Settings(BaseSettings):
 
     database_url: str = "sqlite:///./spotify_mcp.db"
 
+    # Public URLs of this server, as MCP clients see them. The issuer goes in
+    # the `iss` claim of the tokens we issue; the MCP resource URL goes in
+    # `aud`, so a token is only accepted by the server it was issued for.
+    oauth_issuer_url: str = "http://127.0.0.1:8000"
+    mcp_resource_url: str = "http://127.0.0.1:8000/mcp"
+
     # Secret used to sign (HS256) the JWT access tokens this server issues to
     # MCP clients. Whoever has it can forge a token for any user. SecretStr
     # keeps it out of reprs/logs; read it with .get_secret_value().

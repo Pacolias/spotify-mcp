@@ -72,6 +72,8 @@ With HS256 the key is a single secret, and whoever holds it can forge valid toke
 
 **Decision: A.** It reuses the existing configuration mechanism and fits the project's scale.
 
+**Required from day one.** `JWT_SIGNING_KEY` became a required setting as soon as it was added (commit `eeda0c2`), even though only the future remote server uses it. The alternative was optional-until-needed. Trade-off accepted: the stdio server, the tests and CI all need a key now (CI uses a placeholder), in exchange for no intermediate state to clean up later. `config.py` rejects keys shorter than 32 bytes, so the server refuses to start with a weak key.
+
 ### 2e. JWT library: PyJWT
 
 **Options:**

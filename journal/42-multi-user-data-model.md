@@ -103,3 +103,13 @@ These are the tokens the server has to keep in the database: refresh tokens, so 
 - **B. Store only a SHA-256 hash:** when a token is presented, hash it and look up the hash. A copied database yields only useless hashes. It costs a few lines of code, and the original token can never be shown again (it never needs to be).
 
 **Decision: B, for both refresh tokens and authorization codes.** A fast hash (SHA-256) is the standard here, not a slow password hash (bcrypt/argon2): slow hashes exist to resist guessing of weak, human-chosen passwords, while these tokens are long random values that can't be guessed.
+
+## 6–8. Implementation details (decided by Claude, per the working agreement)
+
+These don't change the architecture, so they were decided without a separate discussion and are recorded here for completeness.
+
+- **6. Registered clients: one JSON column.** The SDK's `OAuthClientInformationFull` (redirect URIs, grant types, client name...) is stored serialized in a single column, keyed by `client_id`. We never query by its individual fields, and the SDK owns that schema, so it can change between SDK versions without a migration on our side.
+- **7. The in-flight authorization request: a database table.** Between `authorize()` redirecting the user to Spotify and Spotify's callback, the MCP client's original request (its `redirect_uri`, `state`, `code_challenge`, scopes, resource) is stored in a row keyed by a random `state` we send to Spotify. It expires after 10 minutes. The alternative, packing it into a signed `state` parameter, avoids a table but mixes a second use of JWT into the flow and makes the request replayable until it expires.
+- **8. Lifetimes.** Authorization codes: **5 minutes, single use** (RFC 6749 recommends at most 10). Refresh tokens: **30 days, rotated on every use**, so an active user never has to reconnect and one who's been inactive for a month logs in again.
+
+**Still open for the user:** 5, whether to encrypt Spotify tokens at rest.

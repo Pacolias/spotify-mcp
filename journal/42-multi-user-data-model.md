@@ -112,4 +112,12 @@ These don't change the architecture, so they were decided without a separate dis
 - **7. The in-flight authorization request: a database table.** Between `authorize()` redirecting the user to Spotify and Spotify's callback, the MCP client's original request (its `redirect_uri`, `state`, `code_challenge`, scopes, resource) is stored in a row keyed by a random `state` we send to Spotify. It expires after 10 minutes. The alternative, packing it into a signed `state` parameter, avoids a table but mixes a second use of JWT into the flow and makes the request replayable until it expires.
 - **8. Lifetimes.** Authorization codes: **5 minutes, single use** (RFC 6749 recommends at most 10). Refresh tokens: **30 days, rotated on every use**, so an active user never has to reconnect and one who's been inactive for a month logs in again.
 
-**Still open for the user:** 5, whether to encrypt Spotify tokens at rest.
+## 5. Spotify tokens are encrypted at rest
+
+Spotify's access and refresh tokens can't be hashed like our own tokens (see 4), because they have to be sent to Spotify as they are.
+
+**Options:**
+- **A. Store them as-is:** the simplest option, with no second key to manage. But anyone who copies the database file gets users' Spotify refresh tokens, which means long-lived access to their accounts (playlists, playback, listening history) until each user revokes the app in their Spotify settings.
+- **B. Encrypt them** with a key held in a separate environment variable (e.g. Fernet from `cryptography`, already installed): a copied database is useless without the key. This is standard practice for third-party credentials. Costs: a second secret to protect, and losing it means every user has to reconnect Spotify. It doesn't help if the whole server is compromised, since the key and the database live there together.
+
+**Decision: B.** For a portfolio project, security is not the place to cut corners: these are credentials for other people's accounts, and encryption at rest plus key management is exactly what a reviewer looks for.

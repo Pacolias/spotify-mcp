@@ -8,10 +8,11 @@ from urllib.parse import urlencode
 import httpx
 from fastapi import APIRouter, HTTPException
 from fastapi.responses import HTMLResponse, RedirectResponse
-from sqlmodel import Session
+from sqlmodel import Session, select
 
 from spotify_mcp.config import settings
-from spotify_mcp.db.models import SpotifyToken
+from spotify_mcp.db.encryption import decrypt, encrypt
+from spotify_mcp.db.models import SpotifyCredentials, User
 from spotify_mcp.db.session import engine
 
 
@@ -27,14 +28,15 @@ router = APIRouter(prefix="/auth", tags=["auth"])
 
 SPOTIFY_AUTHORIZE_URL = "https://accounts.spotify.com/authorize"
 SPOTIFY_TOKEN_URL = "https://accounts.spotify.com/api/token"
+SPOTIFY_ME_URL = "https://api.spotify.com/v1/me"
 
 # See spotify/client.py for why this is set explicitly.
 _TIMEOUT = httpx.Timeout(10.0, connect=5.0)
 
 # Maps OAuth `state` -> PKCE code_verifier for the short window between
-# redirecting to Spotify and receiving the callback. An in-memory dict is
-# fine for a single-user, single-process app; a multi-worker deployment
-# would need a shared store (DB/Redis) instead.
+# redirecting to Spotify and receiving the callback, for the local `login`
+# command. The remote server's flow will keep this in the database instead
+# (journal 42, decision 7).
 _pending_logins: dict[str, str] = {}
 
 # Set once a login round-trip finishes successfully. Lets `spotify-mcp login`
@@ -55,7 +57,7 @@ _SUCCESS_PAGE = """\
 
 
 class NotAuthenticatedError(Exception):
-    """Raised when a Spotify tool is called before /auth/login has completed."""
+    """Raised when a Spotify tool is called for a user with no stored Spotify login."""
 
 
 def _generate_code_verifier() -> str:
@@ -114,59 +116,89 @@ async def callback(
                 "code_verifier": code_verifier,
             },
         )
-    response.raise_for_status()
-    payload = response.json()
+        response.raise_for_status()
+        payload = response.json()
 
-    token = SpotifyToken(
-        id=1,
-        access_token=payload["access_token"],
-        refresh_token=payload["refresh_token"],
-        expires_at=_utcnow() + timedelta(seconds=payload["expires_in"]),
-        scope=payload["scope"],
-    )
+        # Who just logged in: tokens are stored per Spotify user.
+        me_response = await client.get(
+            SPOTIFY_ME_URL, headers={"Authorization": f"Bearer {payload['access_token']}"}
+        )
+        me_response.raise_for_status()
+        me = me_response.json()
+
     with Session(engine) as session:
-        session.merge(token)
+        user = session.get(User, me["id"]) or User(spotify_id=me["id"], created_at=_utcnow())
+        user.display_name = me.get("display_name")
+        session.add(user)
+        session.merge(
+            SpotifyCredentials(
+                user_id=me["id"],
+                encrypted_access_token=encrypt(payload["access_token"]),
+                encrypted_refresh_token=encrypt(payload["refresh_token"]),
+                expires_at=_utcnow() + timedelta(seconds=payload["expires_in"]),
+                scope=payload["scope"],
+            )
+        )
         session.commit()
 
     login_complete.set()
     return HTMLResponse(_SUCCESS_PAGE)
 
 
-async def _refresh(token: SpotifyToken, session: Session) -> SpotifyToken:
+async def _refresh(credentials: SpotifyCredentials, session: Session) -> str:
+    """Get a new Spotify access token, store it, and return it (in plaintext)."""
     async with httpx.AsyncClient(timeout=_TIMEOUT) as client:
         response = await client.post(
             SPOTIFY_TOKEN_URL,
             data={
                 "grant_type": "refresh_token",
-                "refresh_token": token.refresh_token,
+                "refresh_token": decrypt(credentials.encrypted_refresh_token),
                 "client_id": settings.spotify_client_id,
             },
         )
     response.raise_for_status()
     payload = response.json()
 
-    token.access_token = payload["access_token"]
-    token.expires_at = _utcnow() + timedelta(seconds=payload["expires_in"])
+    credentials.encrypted_access_token = encrypt(payload["access_token"])
+    credentials.expires_at = _utcnow() + timedelta(seconds=payload["expires_in"])
     # Spotify doesn't always rotate the refresh token — keep the old one if absent.
     if "refresh_token" in payload:
-        token.refresh_token = payload["refresh_token"]
+        credentials.encrypted_refresh_token = encrypt(payload["refresh_token"])
 
-    session.add(token)
+    session.add(credentials)
     session.commit()
-    session.refresh(token)
-    return token
+    return str(payload["access_token"])
 
 
-async def get_valid_access_token() -> str:
-    """Returns a Spotify access token guaranteed to be valid for at least
-    30 more seconds, refreshing it first if needed. Used by every Spotify API
-    call the MCP tools make."""
+def _only_local_user(session: Session) -> str:
+    """The local stdio server has no authenticated caller, so it acts for the
+    single user stored in the database."""
+    user_ids = session.exec(select(SpotifyCredentials.user_id).limit(2)).all()
+    if not user_ids:
+        raise NotAuthenticatedError("Not logged in — run `spotify-mcp login` first.")
+    if len(user_ids) > 1:
+        raise NotAuthenticatedError(
+            "More than one Spotify user is stored; the local server needs exactly one."
+        )
+    return user_ids[0]
+
+
+async def get_valid_access_token(user_id: str | None = None) -> str:
+    """Returns a Spotify access token for `user_id`, guaranteed to be valid
+    for at least 30 more seconds, refreshing it first if needed. Used by every
+    Spotify API call the MCP tools make.
+
+    `user_id=None` means the local stdio server's single user.
+    """
     with Session(engine) as session:
-        token = session.get(SpotifyToken, 1)
-        if token is None:
-            raise NotAuthenticatedError("Not logged in — visit /auth/login first.")
+        if user_id is None:
+            user_id = _only_local_user(session)
 
-        if token.expires_at <= _utcnow() + timedelta(seconds=30):
-            token = await _refresh(token, session)
+        credentials = session.get(SpotifyCredentials, user_id)
+        if credentials is None:
+            raise NotAuthenticatedError("This Spotify account isn't connected — log in first.")
 
-        return token.access_token
+        if credentials.expires_at <= _utcnow() + timedelta(seconds=30):
+            return await _refresh(credentials, session)
+
+        return decrypt(credentials.encrypted_access_token)

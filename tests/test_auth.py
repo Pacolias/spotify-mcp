@@ -3,34 +3,24 @@ from datetime import timedelta
 import httpx
 import pytest
 import respx
-from sqlmodel import Session
+from sqlmodel import Session, select
 
-from spotify_mcp.db.models import SpotifyToken
+from spotify_mcp.db.encryption import decrypt
+from spotify_mcp.db.models import SpotifyCredentials
 from spotify_mcp.spotify.auth import (
     SPOTIFY_TOKEN_URL,
     NotAuthenticatedError,
-    _utcnow,
     get_valid_access_token,
 )
 
 
-async def test_raises_when_never_logged_in(db_engine) -> None:
+async def test_raises_when_never_logged_in(db_engine, seed_user) -> None:
     with pytest.raises(NotAuthenticatedError):
         await get_valid_access_token()
 
 
-async def test_returns_token_unchanged_when_still_valid(db_engine) -> None:
-    with Session(db_engine) as session:
-        session.add(
-            SpotifyToken(
-                id=1,
-                access_token="still-valid-token",
-                refresh_token="refresh-token",
-                expires_at=_utcnow() + timedelta(minutes=30),
-                scope="user-read-currently-playing",
-            )
-        )
-        session.commit()
+async def test_returns_token_unchanged_when_still_valid(db_engine, seed_user) -> None:
+    seed_user("alice", access_token="still-valid-token", expires_in=timedelta(minutes=30))
 
     token = await get_valid_access_token()
 
@@ -38,20 +28,9 @@ async def test_returns_token_unchanged_when_still_valid(db_engine) -> None:
 
 
 @respx.mock
-async def test_refreshes_token_when_close_to_expiry(db_engine) -> None:
-    with Session(db_engine) as session:
-        session.add(
-            SpotifyToken(
-                id=1,
-                access_token="stale-token",
-                refresh_token="refresh-token",
-                expires_at=_utcnow() + timedelta(seconds=10),
-                scope="user-read-currently-playing",
-            )
-        )
-        session.commit()
-
-    respx.post(SPOTIFY_TOKEN_URL).mock(
+async def test_refreshes_token_when_close_to_expiry(db_engine, seed_user) -> None:
+    seed_user("alice", access_token="stale-token", expires_in=timedelta(seconds=10))
+    refresh_route = respx.post(SPOTIFY_TOKEN_URL).mock(
         return_value=httpx.Response(
             200,
             json={
@@ -66,7 +45,42 @@ async def test_refreshes_token_when_close_to_expiry(db_engine) -> None:
     token = await get_valid_access_token()
 
     assert token == "refreshed-token"
+    # The stored refresh token was decrypted before being sent to Spotify.
+    assert b"refresh_token=refresh-token" in refresh_route.calls.last.request.content
     with Session(db_engine) as session:
-        stored = session.get(SpotifyToken, 1)
+        stored = session.get(SpotifyCredentials, "alice")
         assert stored is not None
-        assert stored.access_token == "refreshed-token"
+        assert decrypt(stored.encrypted_access_token) == "refreshed-token"
+
+
+async def test_tokens_are_stored_encrypted(db_engine, seed_user) -> None:
+    seed_user("alice", access_token="plain-access", refresh_token="plain-refresh")
+
+    with Session(db_engine) as session:
+        stored = session.exec(select(SpotifyCredentials)).one()
+
+    assert "plain-access" not in stored.encrypted_access_token
+    assert "plain-refresh" not in stored.encrypted_refresh_token
+
+
+async def test_each_user_gets_their_own_token(db_engine, seed_user) -> None:
+    seed_user("alice", access_token="alice-token")
+    seed_user("bob", access_token="bob-token")
+
+    assert await get_valid_access_token("alice") == "alice-token"
+    assert await get_valid_access_token("bob") == "bob-token"
+
+
+async def test_unknown_user_is_not_authenticated(db_engine, seed_user) -> None:
+    seed_user("alice")
+
+    with pytest.raises(NotAuthenticatedError):
+        await get_valid_access_token("mallory")
+
+
+async def test_local_mode_refuses_to_guess_between_several_users(db_engine, seed_user) -> None:
+    seed_user("alice")
+    seed_user("bob")
+
+    with pytest.raises(NotAuthenticatedError, match="More than one"):
+        await get_valid_access_token()

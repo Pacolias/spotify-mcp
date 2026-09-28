@@ -80,7 +80,7 @@ pydantic==2.13.5
     #   mcp-types
     #   pydantic-settings
     #   sqlmodel
-pydantic-core==2.46.5
+pydantic-core==2.49.0
     # via pydantic
 pydantic-settings==2.15.0
     # via spotify-mcp

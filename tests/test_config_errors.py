@@ -2,6 +2,8 @@ import os
 import subprocess
 import sys
 
+FERNET_KEY = "za0EN7YSS5tpCSlt6Yc7VzPJlboleuYfK6ndNxEvNAU="
+
 
 def test_missing_client_id_prints_friendly_error_and_exits_1(tmp_path) -> None:
     # sys.exit() happens at import time in config.py, so this has to run in a
@@ -25,7 +27,7 @@ def _import_config(tmp_path, **env: str) -> subprocess.CompletedProcess[str]:
     base = {
         k: v
         for k, v in os.environ.items()
-        if not k.startswith("SPOTIFY_") and k != "JWT_SIGNING_KEY"
+        if not k.startswith("SPOTIFY_") and k not in ("JWT_SIGNING_KEY", "TOKEN_ENCRYPTION_KEY")
     }
     return subprocess.run(
         [sys.executable, "-c", "import spotify_mcp.config"],
@@ -44,13 +46,32 @@ def test_missing_jwt_signing_key_is_reported(tmp_path) -> None:
 
 
 def test_short_jwt_signing_key_is_rejected(tmp_path) -> None:
-    result = _import_config(tmp_path, SPOTIFY_CLIENT_ID="x", JWT_SIGNING_KEY="too-short")
+    result = _import_config(
+        tmp_path,
+        SPOTIFY_CLIENT_ID="x",
+        JWT_SIGNING_KEY="too-short",
+        TOKEN_ENCRYPTION_KEY=FERNET_KEY,
+    )
 
     assert result.returncode == 1
     assert "at least 32 bytes" in result.stderr
 
 
 def test_32_byte_jwt_signing_key_is_accepted(tmp_path) -> None:
-    result = _import_config(tmp_path, SPOTIFY_CLIENT_ID="x", JWT_SIGNING_KEY="k" * 32)
+    result = _import_config(
+        tmp_path, SPOTIFY_CLIENT_ID="x", JWT_SIGNING_KEY="k" * 32, TOKEN_ENCRYPTION_KEY=FERNET_KEY
+    )
 
     assert result.returncode == 0, result.stderr
+
+
+def test_invalid_token_encryption_key_is_rejected(tmp_path) -> None:
+    result = _import_config(
+        tmp_path,
+        SPOTIFY_CLIENT_ID="x",
+        JWT_SIGNING_KEY="k" * 32,
+        TOKEN_ENCRYPTION_KEY="not-a-fernet-key",
+    )
+
+    assert result.returncode == 1
+    assert "must be a Fernet key" in result.stderr

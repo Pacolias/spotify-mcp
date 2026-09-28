@@ -1,5 +1,6 @@
 import sys
 
+from cryptography.fernet import Fernet
 from pydantic import SecretStr, ValidationError, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
@@ -51,6 +52,23 @@ class Settings(BaseSettings):
                 "must be at least 32 bytes (256 bits). Generate one with:\n"
                 '    python -c "import secrets; print(secrets.token_urlsafe(32))"'
             )
+        return value
+
+    # Fernet key that encrypts users' Spotify tokens at rest (journal 42,
+    # decision 5). Losing it means every user has to reconnect Spotify.
+    token_encryption_key: SecretStr
+
+    @field_validator("token_encryption_key")
+    @classmethod
+    def _valid_fernet_key(cls, value: SecretStr) -> SecretStr:
+        try:
+            Fernet(value.get_secret_value())
+        except ValueError:
+            raise ValueError(
+                "must be a Fernet key (32 url-safe base64-encoded bytes). Generate one with:\n"
+                '    python -c "from cryptography.fernet import Fernet; '
+                'print(Fernet.generate_key().decode())"'
+            ) from None
         return value
 
 

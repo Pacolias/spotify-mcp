@@ -14,6 +14,7 @@ jobs:
       # journal entry 11), so a placeholder value is fine here.
       SPOTIFY_CLIENT_ID: ci-placeholder
       JWT_SIGNING_KEY: ci-placeholder-signing-key-at-least-32-bytes
+      TOKEN_ENCRYPTION_KEY: za0EN7YSS5tpCSlt6Yc7VzPJlboleuYfK6ndNxEvNAU=
     steps:
       - uses: actions/checkout@v4
 

@@ -113,7 +113,7 @@ rpds-py==2026.6.3
     #   referencing
 shellingham==1.5.4
     # via typer
-sqlalchemy==2.0.54
+sqlalchemy==2.1.1
     # via sqlmodel
 sqlmodel==0.0.44
     # via spotify-mcp

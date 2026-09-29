@@ -119,7 +119,7 @@ sqlmodel==0.0.44
     # via spotify-mcp
 sse-starlette==3.4.11
     # via mcp
-starlette==1.6.0
+starlette==1.7.0
     # via
     #   fastapi
     #   mcp

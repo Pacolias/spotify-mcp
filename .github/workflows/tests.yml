@@ -1,4 +1,4 @@
-name: Tests
+name: CI
 
 on:
   push:
@@ -82,3 +82,27 @@ jobs:
 
       - name: Build the production image
         run: docker build -t spotify-mcp:ci .
+
+  deploy:
+    # Continuous deployment (journal 48): only from main, and only once every
+    # check above has passed. Render's own auto-deploy is off, so this hook is
+    # the only way a change reaches production.
+    needs: [pytest, lint, docker]
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    # Never two deploys at once; a newer push supersedes a queued one.
+    concurrency:
+      group: deploy-production
+      cancel-in-progress: false
+    environment: production
+    steps:
+      - name: Trigger the Render deploy
+        env:
+          RENDER_DEPLOY_HOOK_URL: ${{ secrets.RENDER_DEPLOY_HOOK_URL }}
+        run: |
+          if [ -z "$RENDER_DEPLOY_HOOK_URL" ]; then
+            echo "::error::The RENDER_DEPLOY_HOOK_URL secret isn't set, so nothing was deployed."
+            exit 1
+          fi
+          curl --fail --silent --show-error -X POST "$RENDER_DEPLOY_HOOK_URL" > /dev/null
+          echo "Render deploy triggered for ${GITHUB_SHA::7}."

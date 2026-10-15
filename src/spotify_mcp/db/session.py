@@ -5,6 +5,10 @@ from sqlmodel import Session, SQLModel, create_engine
 
 from spotify_mcp.config import settings
 from spotify_mcp.db.models import (  # noqa: F401 — registers the tables with SQLModel.metadata
+    AuthorizationCode,
+    OAuthClient,
+    PendingAuthorization,
+    RefreshToken,
     SpotifyCredentials,
     User,
 )

@@ -89,6 +89,10 @@ async def complete_login(code: str, code_verifier: str) -> str:
         user = session.get(User, user_id) or User(spotify_id=user_id, created_at=_utcnow())
         user.display_name = me.get("display_name")
         session.add(user)
+        # Write the user before the credentials that reference it: Postgres
+        # enforces the foreign key, and without relationships SQLAlchemy
+        # doesn't guarantee insert order.
+        session.flush()
         session.merge(
             SpotifyCredentials(
                 user_id=user_id,

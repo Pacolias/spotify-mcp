@@ -12,6 +12,7 @@ dependencies = [
     "fastapi>=0.141.1",
     "httpx>=0.28.1",
     "mcp[cli]>=2.2.0",
+    "psycopg[binary]>=3.3.6",
     "pydantic-settings>=2.15.0",
     "pyjwt>=2.14.0",
     "sqlmodel>=0.0.44",

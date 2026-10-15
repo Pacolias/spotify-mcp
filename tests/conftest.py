@@ -1,3 +1,4 @@
+import os
 from datetime import timedelta
 
 import pytest
@@ -8,6 +9,7 @@ from sqlmodel import Session, SQLModel, create_engine
 
 import spotify_mcp.db.session as db_session
 import spotify_mcp.spotify.auth as auth_module
+from spotify_mcp.config import Settings
 from spotify_mcp.db.encryption import encrypt
 from spotify_mcp.db.models import SpotifyCredentials, User
 from spotify_mcp.spotify.auth import _utcnow
@@ -30,9 +32,19 @@ def authenticated_user():
 
 @pytest.fixture
 def db_engine(tmp_path, monkeypatch):
-    """A throwaway SQLite database for a single test, isolated from the
-    real spotify_mcp.db used during manual/local runs."""
-    engine = create_engine(f"sqlite:///{tmp_path / 'test.db'}")
+    """A throwaway database for a single test, isolated from the real
+    spotify_mcp.db used during manual/local runs.
+
+    SQLite by default. Set TEST_DATABASE_URL to a disposable Postgres to run
+    the suite against the production database engine (as CI does); every
+    table in it is dropped and recreated for each test.
+    """
+    url = os.environ.get("TEST_DATABASE_URL")
+    if url:
+        engine = create_engine(Settings(database_url=url).database_url)
+        SQLModel.metadata.drop_all(engine)
+    else:
+        engine = create_engine(f"sqlite:///{tmp_path / 'test.db'}")
     SQLModel.metadata.create_all(engine)
 
     # db.session and spotify.auth each did `from ... import engine`, which
@@ -72,6 +84,7 @@ def _seed_user(
     """Store a user and their (encrypted) Spotify tokens, as a login would."""
     with Session(engine) as session:
         session.add(User(spotify_id=spotify_id, created_at=_utcnow()))
+        session.flush()  # the user row must exist before its credentials (FK)
         session.add(
             SpotifyCredentials(
                 user_id=spotify_id,

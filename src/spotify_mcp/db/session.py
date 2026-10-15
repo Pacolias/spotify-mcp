@@ -13,7 +13,9 @@ from spotify_mcp.db.models import (  # noqa: F401 — registers the tables with 
     User,
 )
 
-engine = create_engine(settings.database_url)
+# pool_pre_ping: Neon scales to zero and drops idle connections, so check a
+# pooled connection is alive before handing it out.
+engine = create_engine(settings.database_url, pool_pre_ping=True)
 
 
 def init_db() -> None:

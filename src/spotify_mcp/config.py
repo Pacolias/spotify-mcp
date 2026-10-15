@@ -30,7 +30,18 @@ class Settings(BaseSettings):
         "user-read-playback-state"
     )
 
+    # SQLite locally, Postgres (Neon) in production (journal 48).
     database_url: str = "sqlite:///./spotify_mcp.db"
+
+    @field_validator("database_url")
+    @classmethod
+    def _use_psycopg_for_postgres(cls, value: str) -> str:
+        # Neon and most hosts hand out postgres:// or postgresql:// URLs, which
+        # SQLAlchemy maps to psycopg2. We use psycopg 3 (journal 50).
+        for prefix in ("postgres://", "postgresql://"):
+            if value.startswith(prefix):
+                return "postgresql+psycopg://" + value.removeprefix(prefix)
+        return value
 
     # Public URLs of this server, as MCP clients see them. The issuer goes in
     # the `iss` claim of the tokens we issue; the MCP resource URL goes in

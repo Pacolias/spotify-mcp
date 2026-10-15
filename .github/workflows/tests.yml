@@ -8,6 +8,25 @@ on:
 jobs:
   pytest:
     runs-on: ubuntu-latest
+    # Once on SQLite (what local runs use) and once on Postgres (what
+    # production runs, journal 48). Postgres enforces foreign keys and types
+    # that SQLite lets slide.
+    strategy:
+      matrix:
+        database: [sqlite, postgres]
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_PASSWORD: ci
+          POSTGRES_DB: spotify_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
     env:
       # Config is required at import time, but the test suite never talks
       # to the real Spotify API (isolated DB + mocked responses — see
@@ -28,6 +47,8 @@ jobs:
         run: uv sync --locked --all-groups
 
       - name: Run tests
+        env:
+          TEST_DATABASE_URL: ${{ matrix.database == 'postgres' && 'postgresql://postgres:ci@localhost:5432/spotify_test' || '' }}
         run: uv run pytest --cov --cov-report=term-missing
 
   lint:
@@ -52,3 +73,12 @@ jobs:
 
       - name: mypy
         run: uv run mypy
+
+  docker:
+    # Catches a broken Dockerfile before it reaches Render.
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build the production image
+        run: docker build -t spotify-mcp:ci .

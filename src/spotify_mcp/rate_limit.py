@@ -21,6 +21,7 @@ from dataclasses import dataclass
 
 from starlette.types import ASGIApp, Receive, Scope, Send
 
+from spotify_mcp.config import settings
 from spotify_mcp.oauth.tokens import verify_access_token
 
 
@@ -142,10 +143,17 @@ def _user_from_bearer(scope: Scope) -> str | None:
 
 
 def _client_ip(scope: Scope) -> str:
-    # Behind Render's proxy, uvicorn's proxy-headers support has already put
-    # the real client address here from X-Forwarded-For (journal 49).
+    # Behind Render, the proxy's trusted header (settings.client_ip_header);
+    # otherwise the connection's own address. See config.py for why not
+    # X-Forwarded-For.
+    if settings.client_ip_header:
+        wanted = settings.client_ip_header.lower().encode("latin-1")
+        headers: list[tuple[bytes, bytes]] = scope["headers"]
+        for name, value in headers:
+            if name == wanted:
+                return value.decode("latin-1").strip()
     client = scope.get("client")
-    return client[0] if client else "unknown"
+    return str(client[0]) if client else "unknown"
 
 
 async def _too_many_requests(send: Send, retry_after: float) -> None:

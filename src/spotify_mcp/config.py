@@ -49,6 +49,13 @@ class Settings(BaseSettings):
     oauth_issuer_url: str = "http://127.0.0.1:8000"
     mcp_resource_url: str = "http://127.0.0.1:8000/mcp"
 
+    # Header carrying the real client IP when behind a proxy that sets it and
+    # can't be spoofed by the client, e.g. "true-client-ip" on Render (set by
+    # Cloudflare, in front of it). X-Forwarded-For is deliberately not used:
+    # Render appends to whatever the client sent, so its first entry can be
+    # forged. Unset locally, where the connection's own address is the client.
+    client_ip_header: str | None = None
+
     # Secret used to sign (HS256) the JWT access tokens this server issues to
     # MCP clients. Whoever has it can forge a token for any user. SecretStr
     # keeps it out of reprs/logs; read it with .get_secret_value().

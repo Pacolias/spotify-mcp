@@ -141,6 +141,27 @@ def test_mcp_without_a_valid_token_falls_back_to_the_ip(client) -> None:
     assert client.post("/mcp", headers=_bearer("alice")).status_code == 200
 
 
+def test_spoofed_forwarded_for_does_not_get_a_fresh_bucket(client) -> None:
+    allowed = rate_limit.REGISTER_PER_IP.capacity
+    _statuses(client, "/register", allowed)
+
+    response = client.post("/register", headers={"X-Forwarded-For": "203.0.113.7"})
+
+    assert response.status_code == 429
+
+
+def test_trusted_client_ip_header_identifies_the_caller(client, monkeypatch) -> None:
+    monkeypatch.setattr(settings, "client_ip_header", "True-Client-IP")
+    allowed = rate_limit.REGISTER_PER_IP.capacity
+    _statuses(client, "/register", allowed, headers={"True-Client-IP": "198.51.100.1"})
+
+    blocked = client.post("/register", headers={"True-Client-IP": "198.51.100.1"})
+    other = client.post("/register", headers={"True-Client-IP": "198.51.100.2"})
+
+    assert blocked.status_code == 429
+    assert other.status_code == 200
+
+
 def test_other_paths_are_not_limited(client) -> None:
     assert set(_statuses(client, "/health", 100)) == {200}
 

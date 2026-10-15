@@ -47,3 +47,4 @@ Chronological log of architecture decisions and notable findings for `spotify-mc
 43. [Multi-user storage implemented: users, encrypted Spotify credentials](43-multi-user-storage-implemented.md)
 44. [OAuth authorization server implemented: tables and provider](44-oauth-provider-implemented.md)
 45. [Remote only: the stdio entrypoint and the `login` command go away](45-remote-only-drop-stdio-and-login.md)
+46. [Streamable HTTP transport: app structure, user resolution, stateless sessions](46-http-transport-design.md)

@@ -15,6 +15,7 @@ from spotify_mcp.config import settings
 from spotify_mcp.db.session import init_db
 from spotify_mcp.mcp.server import mcp_server, oauth_provider
 from spotify_mcp.oauth.provider import UnknownAuthorizationError
+from spotify_mcp.rate_limit import RateLimitMiddleware
 
 
 def _transport_security() -> TransportSecuritySettings:
@@ -66,6 +67,8 @@ def create_app() -> FastAPI:
             yield
 
     app = FastAPI(title=settings.app_name, lifespan=lifespan)
+    # Wraps everything, mounted MCP app included (journal 49).
+    app.add_middleware(RateLimitMiddleware)
     app.add_api_route("/auth/callback", spotify_callback, methods=["GET"])
     app.add_api_route("/health", health, methods=["GET"])
     # Last, so FastAPI's own routes match first.

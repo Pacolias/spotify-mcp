@@ -1,18 +1,18 @@
 import base64
 import hashlib
 
-from spotify_mcp.spotify.auth import _generate_code_challenge, _generate_code_verifier
+from spotify_mcp.spotify.auth import generate_code_challenge, generate_code_verifier
 
 
 def test_code_verifier_is_url_safe_and_long_enough() -> None:
     # PKCE requires 43-128 chars from [A-Za-z0-9-._~].
-    verifier = _generate_code_verifier()
+    verifier = generate_code_verifier()
     assert 43 <= len(verifier) <= 128
     assert all(c.isalnum() or c in "-._~" for c in verifier)
 
 
 def test_code_verifier_is_random() -> None:
-    assert _generate_code_verifier() != _generate_code_verifier()
+    assert generate_code_verifier() != generate_code_verifier()
 
 
 def test_code_challenge_matches_spec_derivation() -> None:
@@ -22,4 +22,4 @@ def test_code_challenge_matches_spec_derivation() -> None:
     expected = base64.urlsafe_b64encode(hashlib.sha256(verifier.encode("ascii")).digest())
     expected = expected.decode("ascii").rstrip("=")
 
-    assert _generate_code_challenge(verifier) == expected
+    assert generate_code_challenge(verifier) == expected

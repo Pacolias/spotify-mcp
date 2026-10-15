@@ -77,3 +77,17 @@ def test_invalid_token_encryption_key_is_rejected(tmp_path) -> None:
 
     assert result.returncode == 1
     assert "must be a Fernet key" in result.stderr
+
+
+def test_invalid_database_url_does_not_print_its_password(tmp_path) -> None:
+    result = _import_config(
+        tmp_path,
+        SPOTIFY_CLIENT_ID="x",
+        JWT_SIGNING_KEY="k" * 32,
+        TOKEN_ENCRYPTION_KEY=FERNET_KEY,
+        DATABASE_URL="postgresql://user:hunter2@db.neon.te\n  ch/app",
+    )
+
+    assert result.returncode == 1
+    assert "database_url: Value error, contains a space or line break" in result.stderr
+    assert "hunter2" not in result.stderr

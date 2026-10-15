@@ -36,6 +36,14 @@ class Settings(BaseSettings):
     @field_validator("database_url")
     @classmethod
     def _use_psycopg_for_postgres(cls, value: str) -> str:
+        # A line break pasted into a hosting dashboard otherwise surfaces as
+        # a baffling DNS error for a host name with "\n" in it.
+        if any(char.isspace() for char in value):
+            raise ValueError(
+                "contains a space or line break. Paste the URL again as a single line."
+            )
+        # Neon and most hosts hand out postgres:// or postgresql:// URLs, which
+        # SQLAlchemy maps to psycopg2. We use psycopg 3 (journal 50).
         for prefix in ("postgres://", "postgresql://"):
             if value.startswith(prefix):
                 return "postgresql+psycopg://" + value.removeprefix(prefix)

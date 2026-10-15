@@ -56,10 +56,12 @@ class Settings(BaseSettings):
     mcp_resource_url: str = "http://127.0.0.1:8000/mcp"
 
     # Header carrying the real client IP when behind a proxy that sets it and
-    # can't be spoofed by the client, e.g. "true-client-ip" on Render (set by
-    # Cloudflare, in front of it). X-Forwarded-For is deliberately not used:
-    # Render appends to whatever the client sent, so its first entry can be
-    # forged. Unset locally, where the connection's own address is the client.
+    # the client can't forge it. On Render that's "cf-connecting-ip": its
+    # Cloudflare edge sets it, and rejects (403) any request that arrives
+    # with one already set. Both alternatives were checked against the live
+    # service and are forgeable there: True-Client-IP passes through as the
+    # client sent it, and Render appends to the client's X-Forwarded-For.
+    # Unset locally, where the connection's own address is the client.
     client_ip_header: str | None = None
 
     # Secret used to sign (HS256) the JWT access tokens this server issues to

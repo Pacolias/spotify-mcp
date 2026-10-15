@@ -3,7 +3,7 @@
 [![Tests](https://github.com/Pacolias/spotify-mcp/actions/workflows/tests.yml/badge.svg)](https://github.com/Pacolias/spotify-mcp/actions/workflows/tests.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
-An MCP (Model Context Protocol) server for interacting with the Spotify Web API, built with Python and FastAPI. Runs locally — an MCP host (Claude Desktop, Claude Code, etc.) launches it as a subprocess on your own machine.
+A remote MCP (Model Context Protocol) server for the Spotify Web API, built with Python and FastAPI. MCP hosts (Claude, Claude Code, ...) connect to it over HTTP, and users sign in by clicking "connect" and logging in to Spotify: no API keys to copy around.
 
 This is a portfolio project by [Paco Molina](https://pacomolina.dev). The reasoning behind every architecture decision — and why — is logged in [`journal/`](journal/), one entry per decision, in the order they were made.
 
@@ -19,49 +19,49 @@ A real exchange with `import_youtube_playlist`, pulling new tracks from a YouTub
 
 [MCP](https://modelcontextprotocol.io/) is an open protocol that lets an AI client (like Claude) talk to external tools and data sources through a standard interface, instead of custom one-off integrations. A client connects to a server, and the server exposes three kinds of things: **tools** — functions the model actively decides to call, with a name, description, and typed schema generated from the function's signature and docstring; **resources** — read-only, URI-addressed data (e.g. `spotify://me/now-playing`) meant to be listed and attached to context more like a referenced document than an invoked action; and **prompts** — reusable prompt templates the host can surface directly to the user (often as a quick-access menu) that kick off a specific workflow with a pre-written message.
 
-This project is two small, single-purpose local programs:
+The server runs as a single HTTP service (`spotify-mcp serve`): a FastAPI app with the MCP SDK's app mounted inside it. It plays two roles:
 
-- **The MCP server itself** (`spotify_mcp.cli`, the `spotify-mcp` command), talking to its host over **stdio** — the host process launches it and communicates over stdin/stdout, no network involved. This is what an MCP-compatible client actually connects to.
-- **A local login helper** (`spotify_mcp.main`, a small FastAPI app), run separately, that handles the Spotify OAuth2 (Authorization Code + PKCE) flow at `/auth/login` and `/auth/callback`. Spotify data (like "what's currently playing") is user-specific, so a logged-in user's access token is needed to call the Spotify API on their behalf. The login step needs a browser and an HTTP redirect regardless of how the MCP server itself talks to its host — that's a property of OAuth, not of MCP transport — so it's kept as its own small process rather than folded into the stdio one.
+- **MCP server.** `/mcp` speaks MCP over **streamable HTTP**, statelessly: every request stands alone, so the server can restart or run as several copies without breaking anyone's connection.
+- **OAuth authorization server for MCP hosts**, following the MCP authorization spec. A host that gets a `401` from `/mcp` discovers the server's OAuth metadata, registers itself (dynamic client registration), and sends the user to `/authorize`. That chains straight into **Spotify's own login**, so signing in to this server *is* connecting Spotify. The host ends up with an access token (a signed JWT, valid for an hour) and a refresh token, and sends the access token with every MCP request.
 
-Once logged in, the access/refresh token pair is stored in a small SQLite database, shared by both processes, and transparently refreshed when it's close to expiring.
+Two OAuth flows are chained, and Spotify's tokens never leave the server:
+
+```
+MCP host ──(OAuth #1)──▶ this server ──(OAuth #2)──▶ Spotify
+           we issue our own tokens       Spotify issues its tokens, kept server-side
+```
+
+Each tool call resolves the user from the access token's `sub` claim and calls Spotify with that user's tokens, so up to five people (Spotify's limit for apps in Development Mode) can use one deployment. Spotify tokens are stored **encrypted** in SQLite. Refresh tokens and authorization codes are stored only as **SHA-256 hashes**, and refresh tokens rotate on every use, with reuse detection.
 
 ```mermaid
 graph TD
-    Host["MCP Host<br/>(e.g. Claude Desktop / Claude Code)"]
-    Browser["User's Browser"]
+    Host["MCP host<br/>(e.g. Claude, Claude Code)"]
+    Browser["User's browser"]
 
-    subgraph Stdio["MCP server process (stdio)"]
-        MCPServer["mcp_server.run()<br/>stdio transport"]
-        Tools["MCP tools<br/>search, now_playing, top_tracks, ..."]
-        Resources["MCP resources<br/>spotify://me/now-playing, ..."]
-        Prompts["MCP prompts<br/>build_playlist, listening_recap, ..."]
+    subgraph Server["spotify-mcp serve (FastAPI)"]
+        MCP["/mcp<br/>streamable HTTP, stateless<br/>requires a Bearer token"]
+        OAuth["OAuth endpoints (MCP SDK)<br/>/register, /authorize, /token, /revoke<br/>+ .well-known metadata"]
+        Callback["/auth/callback"]
+        Provider["SpotifyOAuthProvider"]
+        Tools["Tools, resources, prompts"]
+        SpotifyClient["Spotify client (httpx)"]
     end
 
-    subgraph LoginApp["Login helper (FastAPI, run separately)"]
-        AuthRoutes["/auth/login, /auth/callback<br/>(OAuth2 + PKCE)"]
-    end
-
-    SpotifyClient["Spotify client (httpx)"]
-    DB[("SQLite<br/>spotify_mcp.db")]
-    SpotifyAPI["api.spotify.com"]
+    DB[("SQLite<br/>users, encrypted Spotify tokens,<br/>hashed codes and refresh tokens")]
     SpotifyAuth["accounts.spotify.com"]
+    SpotifyAPI["api.spotify.com"]
 
-    Host -->|"spawns as subprocess, stdin/stdout"| MCPServer
-    MCPServer --> Tools
-    MCPServer --> Resources
-    MCPServer --> Prompts
-    Tools --> SpotifyClient
-    Resources --> SpotifyClient
-    Prompts -.->|"guides toward"| Tools
-
-    Browser --> AuthRoutes
-    AuthRoutes -->|"redirect + code"| SpotifyAuth
-    SpotifyAuth -->|"redirect back"| AuthRoutes
-    AuthRoutes -->|"store token"| DB
-
-    SpotifyClient -->|"read / refresh token"| DB
-    SpotifyClient -->|"Authorization: Bearer access_token"| SpotifyAPI
+    Host -->|"1. register, authorize, token"| OAuth
+    OAuth --> Provider
+    Browser -->|"2. Spotify login"| SpotifyAuth
+    SpotifyAuth -->|"3. redirect back"| Callback
+    Callback --> Provider
+    Provider --> DB
+    Host -->|"4. MCP requests + Bearer JWT"| MCP
+    MCP --> Tools
+    Tools -->|"user_id from the JWT"| SpotifyClient
+    SpotifyClient -->|"that user's token"| DB
+    SpotifyClient --> SpotifyAPI
 ```
 
 ### Available tools
@@ -133,16 +133,11 @@ uv sync                             # with uv (recommended)
 pip install -r requirements.txt     # or with plain pip — kept in sync with pyproject.toml via `uv export`
 ```
 
-**2. Configure and log in:**
+**2. Configure:**
 
 ```bash
 cp .env.example .env          # then set SPOTIFY_CLIENT_ID, JWT_SIGNING_KEY and TOKEN_ENCRYPTION_KEY in .env — see below
-uv run spotify-mcp login      # opens your browser, log in once
 ```
-
-(Installed with plain `pip`? Drop the `uv run` prefix — just `spotify-mcp login`.)
-
-> `login` opens a real browser window on the machine it runs on and waits for the OAuth redirect to reach `127.0.0.1`. Run it on your own local machine — it won't work over SSH or in a remote/headless sandbox with no browser to open.
 
 **`SPOTIFY_CLIENT_ID`**: [create a Spotify app](https://developer.spotify.com/dashboard) → add `http://127.0.0.1:8000/auth/callback` as a Redirect URI → check **Web API** → copy the Client ID (no secret needed, this uses PKCE) → paste into `.env`.
 
@@ -150,26 +145,27 @@ uv run spotify-mcp login      # opens your browser, log in once
 
 **`TOKEN_ENCRYPTION_KEY`**: the key that encrypts users' Spotify tokens in the database. Generate one with `python -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())"` and paste it into `.env`. Keep it safe: if it's lost, everyone has to log in to Spotify again.
 
-**Register it with your MCP host:**
-
-**Claude Code** — from the repo root:
+**3. Run the server:**
 
 ```bash
-claude mcp add spotify-mcp -- uv run --directory "$(pwd)" spotify-mcp
+uv run spotify-mcp serve      # http://127.0.0.1:8000, MCP endpoint at /mcp
 ```
 
-**Other hosts** (Claude Desktop, etc.) — add to the host's MCP config:
+(Installed with plain `pip`? Drop the `uv run` prefix.)
 
-```json
-{
-  "mcpServers": {
-    "spotify-mcp": {
-      "command": "uv",
-      "args": ["run", "--directory", "/absolute/path/to/spotify-mcp", "spotify-mcp"]
-    }
-  }
-}
+**4. Connect your MCP host** and sign in. Users other than the Spotify app's owner have to be added to the app's allow-list in the Spotify developer dashboard first.
+
+**Claude Code:**
+
+```bash
+claude mcp add --transport http spotify-mcp http://127.0.0.1:8000/mcp
 ```
+
+Then run `/mcp`, pick `spotify-mcp` and choose **Authenticate**: your browser opens Spotify's consent screen, and after you agree you're sent back to Claude Code, connected.
+
+**Other hosts:** add `http://127.0.0.1:8000/mcp` as a remote (HTTP) MCP server and follow the host's sign-in prompt.
+
+> Spotify only accepts plain-HTTP redirect URIs on loopback addresses (`127.0.0.1`). A deployed server needs HTTPS, with `OAUTH_ISSUER_URL`, `MCP_RESOURCE_URL` and `SPOTIFY_REDIRECT_URI` set to its public URLs (and the redirect URI added in the Spotify dashboard).
 
 ## Testing
 

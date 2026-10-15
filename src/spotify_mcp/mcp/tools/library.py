@@ -1,3 +1,4 @@
+from spotify_mcp.mcp.current_user import current_user_id
 from spotify_mcp.mcp.server import mcp_server
 from spotify_mcp.spotify.auth import NotAuthenticatedError
 from spotify_mcp.spotify.client import (
@@ -14,7 +15,7 @@ async def liked_songs(limit: int = 20, offset: int = 0) -> str:
     by Spotify — pass a higher offset in a follow-up call to page through
     more (the user may have hundreds or thousands of saved tracks)."""
     try:
-        results = await get_saved_tracks(limit=limit, offset=offset)
+        results = await get_saved_tracks(current_user_id(), limit=limit, offset=offset)
     except NotAuthenticatedError as exc:
         return str(exc)
 
@@ -31,7 +32,7 @@ async def like_tracks(track_ids: list[str]) -> str:
     restricts this endpoint to apps with "Extended Quota Mode" approval —
     it may fail with a permissions error on apps that don't have it."""
     try:
-        await save_tracks(track_ids)
+        await save_tracks(current_user_id(), track_ids)
     except NotAuthenticatedError as exc:
         return str(exc)
     except SpotifyAPIError as exc:
@@ -45,7 +46,7 @@ async def unlike_tracks(track_ids: list[str]) -> str:
     restricts this endpoint to apps with "Extended Quota Mode" approval —
     it may fail with a permissions error on apps that don't have it."""
     try:
-        await remove_saved_tracks(track_ids)
+        await remove_saved_tracks(current_user_id(), track_ids)
     except NotAuthenticatedError as exc:
         return str(exc)
     except SpotifyAPIError as exc:

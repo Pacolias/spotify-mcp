@@ -1,3 +1,4 @@
+from spotify_mcp.mcp.current_user import current_user_id
 from spotify_mcp.mcp.server import mcp_server
 from spotify_mcp.spotify.auth import NotAuthenticatedError
 from spotify_mcp.spotify.client import add_tracks_to_playlist, create_playlist, search_tracks
@@ -32,8 +33,9 @@ async def import_youtube_playlist(
     matched_names = []
     unmatched = []
     try:
+        user_id = current_user_id()
         for entry in entries:
-            results = await search_tracks(entry, limit=1)
+            results = await search_tracks(user_id, entry, limit=1)
             if results and artist_plausibly_matches(entry, results[0]["artists"]):
                 matched_ids.append(results[0]["id"])
                 matched_names.append(f"{results[0]['name']} — {', '.join(results[0]['artists'])}")
@@ -46,8 +48,10 @@ async def import_youtube_playlist(
         return f"Found {len(entries)} tracklist entries but none matched on Spotify."
 
     try:
-        playlist = await create_playlist(playlist_name, description=description, public=public)
-        await add_tracks_to_playlist(playlist["id"], matched_ids)
+        playlist = await create_playlist(
+            user_id, playlist_name, description=description, public=public
+        )
+        await add_tracks_to_playlist(user_id, playlist["id"], matched_ids)
     except NotAuthenticatedError as exc:
         return str(exc)
 

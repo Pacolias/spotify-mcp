@@ -1,6 +1,9 @@
 from datetime import timedelta
 
 import pytest
+from mcp.server.auth.middleware.auth_context import auth_context_var
+from mcp.server.auth.middleware.bearer_auth import AuthenticatedUser
+from mcp.server.auth.provider import AccessToken
 from sqlmodel import Session, SQLModel, create_engine
 
 import spotify_mcp.db.session as db_session
@@ -8,6 +11,21 @@ import spotify_mcp.spotify.auth as auth_module
 from spotify_mcp.db.encryption import encrypt
 from spotify_mcp.db.models import SpotifyCredentials, User
 from spotify_mcp.spotify.auth import _utcnow
+
+TEST_USER_ID = "test-user"
+
+
+@pytest.fixture(autouse=True)
+def authenticated_user():
+    """Every test runs as if an MCP request carried a verified access token
+    for TEST_USER_ID, so tools never fall back to whatever user happens to be
+    in the developer's local database."""
+    token = AccessToken(
+        token="test-token", client_id="test-client", scopes=[], subject=TEST_USER_ID
+    )
+    reset = auth_context_var.set(AuthenticatedUser(token))
+    yield
+    auth_context_var.reset(reset)
 
 
 @pytest.fixture

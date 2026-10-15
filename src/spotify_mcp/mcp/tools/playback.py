@@ -1,3 +1,4 @@
+from spotify_mcp.mcp.current_user import current_user_id
 from spotify_mcp.mcp.server import mcp_server
 from spotify_mcp.spotify.auth import NotAuthenticatedError
 from spotify_mcp.spotify.client import (
@@ -22,7 +23,7 @@ from spotify_mcp.spotify.client import (
 async def now_playing() -> str:
     """Get the track currently playing on the user's Spotify account, if any."""
     try:
-        playing = await get_currently_playing()
+        playing = await get_currently_playing(current_user_id())
     except NotAuthenticatedError as exc:
         return str(exc)
 
@@ -40,7 +41,7 @@ async def now_playing() -> str:
 async def pause() -> str:
     """Pause playback on the user's active Spotify device."""
     try:
-        await pause_playback()
+        await pause_playback(current_user_id())
     except (NotAuthenticatedError, SpotifyPlaybackError) as exc:
         return str(exc)
     return "Paused."
@@ -50,7 +51,7 @@ async def pause() -> str:
 async def resume() -> str:
     """Resume/start playback on the user's active Spotify device."""
     try:
-        await resume_playback()
+        await resume_playback(current_user_id())
     except (NotAuthenticatedError, SpotifyPlaybackError) as exc:
         return str(exc)
     return "Resumed playback."
@@ -60,7 +61,7 @@ async def resume() -> str:
 async def skip_next() -> str:
     """Skip to the next track on the user's active Spotify device."""
     try:
-        await skip_to_next()
+        await skip_to_next(current_user_id())
     except (NotAuthenticatedError, SpotifyPlaybackError) as exc:
         return str(exc)
     return "Skipped to next track."
@@ -70,7 +71,7 @@ async def skip_next() -> str:
 async def skip_previous() -> str:
     """Skip to the previous track on the user's active Spotify device."""
     try:
-        await skip_to_previous()
+        await skip_to_previous(current_user_id())
     except (NotAuthenticatedError, SpotifyPlaybackError) as exc:
         return str(exc)
     return "Skipped to previous track."
@@ -82,7 +83,7 @@ async def set_playback_volume(volume_percent: int) -> str:
     if not 0 <= volume_percent <= 100:
         return "volume_percent must be between 0 and 100."
     try:
-        await set_volume(volume_percent)
+        await set_volume(current_user_id(), volume_percent)
     except (NotAuthenticatedError, SpotifyPlaybackError) as exc:
         return str(exc)
     return f"Volume set to {volume_percent}%."
@@ -92,7 +93,7 @@ async def set_playback_volume(volume_percent: int) -> str:
 async def queue_track(track_id: str) -> str:
     """Add a track to the playback queue. track_id comes from search_track."""
     try:
-        await add_to_queue(track_id)
+        await add_to_queue(current_user_id(), track_id)
     except (NotAuthenticatedError, SpotifyPlaybackError) as exc:
         return str(exc)
     return "Track added to queue."
@@ -102,7 +103,7 @@ async def queue_track(track_id: str) -> str:
 async def shuffle(enabled: bool) -> str:
     """Turn shuffle mode on or off on the user's active Spotify device."""
     try:
-        await set_shuffle(enabled)
+        await set_shuffle(current_user_id(), enabled)
     except (NotAuthenticatedError, SpotifyPlaybackError) as exc:
         return str(exc)
     return f"Shuffle {'on' if enabled else 'off'}."
@@ -116,7 +117,7 @@ async def repeat_mode(mode: str) -> str:
     if mode not in ("track", "context", "off"):
         return "mode must be one of: track, context, off."
     try:
-        await set_repeat_mode(mode)
+        await set_repeat_mode(current_user_id(), mode)
     except (NotAuthenticatedError, SpotifyPlaybackError) as exc:
         return str(exc)
     return f"Repeat mode set to '{mode}'."
@@ -128,7 +129,7 @@ async def seek(position_ms: int) -> str:
     if position_ms < 0:
         return "position_ms must be 0 or greater."
     try:
-        await seek_to_position(position_ms)
+        await seek_to_position(current_user_id(), position_ms)
     except (NotAuthenticatedError, SpotifyPlaybackError) as exc:
         return str(exc)
     return f"Seeked to {position_ms}ms."
@@ -142,7 +143,7 @@ async def list_devices() -> str:
     — the Spotify API can only control a device that's already open
     somewhere, it can't launch Spotify from nothing."""
     try:
-        devices = await get_devices()
+        devices = await get_devices(current_user_id())
     except (NotAuthenticatedError, SpotifyAPIError) as exc:
         return str(exc)
 
@@ -160,7 +161,7 @@ async def activate_device(device_id: str, start_playing: bool = True) -> str:
     """Switch playback to a specific device (from list_devices) and
     optionally start playing on it."""
     try:
-        await transfer_playback(device_id, play=start_playing)
+        await transfer_playback(current_user_id(), device_id, play=start_playing)
     except (NotAuthenticatedError, SpotifyPlaybackError) as exc:
         return str(exc)
     return f"Switched playback to device {device_id}."

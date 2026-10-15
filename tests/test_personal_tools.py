@@ -7,7 +7,7 @@ from spotify_mcp.spotify.auth import NotAuthenticatedError
 
 
 async def test_top_tracks_formats_results(monkeypatch) -> None:
-    async def fake_get_top_tracks(limit, time_range):
+    async def fake_get_top_tracks(user_id, limit, time_range):
         return [{"name": "Track", "artists": ["Artist"], "album": "Album"}]
 
     monkeypatch.setattr(personal_tools, "get_top_tracks", fake_get_top_tracks)
@@ -18,7 +18,7 @@ async def test_top_tracks_formats_results(monkeypatch) -> None:
 
 
 async def test_top_tracks_reports_empty(monkeypatch) -> None:
-    async def fake_get_top_tracks(limit, time_range):
+    async def fake_get_top_tracks(user_id, limit, time_range):
         return []
 
     monkeypatch.setattr(personal_tools, "get_top_tracks", fake_get_top_tracks)
@@ -27,7 +27,7 @@ async def test_top_tracks_reports_empty(monkeypatch) -> None:
 
 
 async def test_top_tracks_surfaces_not_authenticated(monkeypatch) -> None:
-    async def fake_get_top_tracks(limit, time_range):
+    async def fake_get_top_tracks(user_id, limit, time_range):
         raise NotAuthenticatedError("not logged in")
 
     monkeypatch.setattr(personal_tools, "get_top_tracks", fake_get_top_tracks)
@@ -36,7 +36,7 @@ async def test_top_tracks_surfaces_not_authenticated(monkeypatch) -> None:
 
 
 async def test_top_artists_includes_genres_when_present(monkeypatch) -> None:
-    async def fake_get_top_artists(limit, time_range):
+    async def fake_get_top_artists(user_id, limit, time_range):
         return [{"name": "Artist A", "genres": ["synthwave", "electronic"]}]
 
     monkeypatch.setattr(personal_tools, "get_top_artists", fake_get_top_artists)
@@ -47,7 +47,7 @@ async def test_top_artists_includes_genres_when_present(monkeypatch) -> None:
 
 
 async def test_top_artists_omits_parens_when_no_genres(monkeypatch) -> None:
-    async def fake_get_top_artists(limit, time_range):
+    async def fake_get_top_artists(user_id, limit, time_range):
         return [{"name": "Artist A", "genres": []}]
 
     monkeypatch.setattr(personal_tools, "get_top_artists", fake_get_top_artists)
@@ -58,7 +58,7 @@ async def test_top_artists_omits_parens_when_no_genres(monkeypatch) -> None:
 
 
 async def test_top_artists_reports_empty(monkeypatch) -> None:
-    async def fake_get_top_artists(limit, time_range):
+    async def fake_get_top_artists(user_id, limit, time_range):
         return []
 
     monkeypatch.setattr(personal_tools, "get_top_artists", fake_get_top_artists)
@@ -67,7 +67,7 @@ async def test_top_artists_reports_empty(monkeypatch) -> None:
 
 
 async def test_recently_played_formats_results(monkeypatch) -> None:
-    async def fake_get_recently_played(limit):
+    async def fake_get_recently_played(user_id, limit):
         return [{"played_at": "2026-09-22T10:00:00Z", "name": "Track", "artists": ["Artist"]}]
 
     monkeypatch.setattr(personal_tools, "get_recently_played", fake_get_recently_played)
@@ -78,7 +78,7 @@ async def test_recently_played_formats_results(monkeypatch) -> None:
 
 
 async def test_recently_played_reports_empty(monkeypatch) -> None:
-    async def fake_get_recently_played(limit):
+    async def fake_get_recently_played(user_id, limit):
         return []
 
     monkeypatch.setattr(personal_tools, "get_recently_played", fake_get_recently_played)

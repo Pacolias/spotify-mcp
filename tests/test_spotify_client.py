@@ -25,7 +25,7 @@ async def test_search_tracks_parses_results(logged_in) -> None:
         )
     )
 
-    results = await search_tracks("Bohemian Rhapsody")
+    results = await search_tracks("test-user", "Bohemian Rhapsody")
 
     assert results == [
         {
@@ -44,7 +44,7 @@ async def test_currently_playing_returns_none_when_nothing_playing(logged_in) ->
         return_value=httpx.Response(204)
     )
 
-    assert await get_currently_playing() is None
+    assert await get_currently_playing("test-user") is None
 
 
 @respx.mock
@@ -66,7 +66,7 @@ async def test_currently_playing_parses_active_playback(logged_in) -> None:
         )
     )
 
-    result = await get_currently_playing()
+    result = await get_currently_playing("test-user")
 
     assert result == {
         "name": "Track name",

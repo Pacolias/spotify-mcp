@@ -1,5 +1,6 @@
 import re
 
+from spotify_mcp.mcp.current_user import current_user_id
 from spotify_mcp.mcp.server import mcp_server
 from spotify_mcp.spotify.auth import NotAuthenticatedError
 from spotify_mcp.spotify.client import (
@@ -18,7 +19,7 @@ _HTML_TAG = re.compile(r"<[^>]+>")
 async def list_user_playlists(limit: int = 20) -> str:
     """List the logged-in user's Spotify playlists."""
     try:
-        results = await list_playlists(limit=limit)
+        results = await list_playlists(current_user_id(), limit=limit)
     except NotAuthenticatedError as exc:
         return str(exc)
 
@@ -37,7 +38,7 @@ async def playlist_tracks(playlist_id: str, limit: int = 50) -> str:
     add_tracks / remove_tracks_from_playlist). playlist_id comes from
     list_user_playlists."""
     try:
-        results = await get_playlist_tracks(playlist_id, limit=limit)
+        results = await get_playlist_tracks(current_user_id(), playlist_id, limit=limit)
     except NotAuthenticatedError as exc:
         return str(exc)
 
@@ -55,7 +56,9 @@ async def create_user_playlist(name: str, description: str = "", public: bool = 
     created public regardless (confirmed bug on Spotify's side, not this
     server; see journal entry 30)."""
     try:
-        playlist = await create_playlist(name, description=description, public=public)
+        playlist = await create_playlist(
+            current_user_id(), name, description=description, public=public
+        )
     except NotAuthenticatedError as exc:
         return str(exc)
 
@@ -67,7 +70,7 @@ async def add_tracks(playlist_id: str, track_ids: list[str]) -> str:
     """Add one or more tracks to a playlist. playlist_id and track_ids come
     from create_user_playlist / list_user_playlists and search_track."""
     try:
-        await add_tracks_to_playlist(playlist_id, track_ids)
+        await add_tracks_to_playlist(current_user_id(), playlist_id, track_ids)
     except NotAuthenticatedError as exc:
         return str(exc)
 
@@ -79,7 +82,7 @@ async def remove_tracks(playlist_id: str, track_ids: list[str]) -> str:
     """Remove one or more tracks from a playlist. playlist_id and track_ids
     come from list_user_playlists and playlist_tracks."""
     try:
-        await remove_tracks_from_playlist(playlist_id, track_ids)
+        await remove_tracks_from_playlist(current_user_id(), playlist_id, track_ids)
     except NotAuthenticatedError as exc:
         return str(exc)
 
@@ -94,7 +97,7 @@ async def find_playlists(query: str, limit: int = 5) -> str:
     this API (only its name/description/owner) — playlist_tracks only works
     on your own playlists."""
     try:
-        results = await search_playlists(query, limit=limit)
+        results = await search_playlists(current_user_id(), query, limit=limit)
     except NotAuthenticatedError as exc:
         return str(exc)
 

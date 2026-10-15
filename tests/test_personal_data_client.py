@@ -28,7 +28,7 @@ async def test_get_top_tracks_parses_results(logged_in) -> None:
         )
     )
 
-    results = await get_top_tracks(limit=1)
+    results = await get_top_tracks("test-user", limit=1)
 
     assert results == [
         {
@@ -59,7 +59,7 @@ async def test_get_top_artists_parses_results(logged_in) -> None:
         )
     )
 
-    results = await get_top_artists(limit=1)
+    results = await get_top_artists("test-user", limit=1)
 
     assert results == [
         {
@@ -92,7 +92,7 @@ async def test_get_recently_played_parses_results(logged_in) -> None:
         )
     )
 
-    results = await get_recently_played(limit=1)
+    results = await get_recently_played("test-user", limit=1)
 
     assert results == [
         {

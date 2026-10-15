@@ -33,7 +33,7 @@ async def test_get_saved_tracks_parses_results(logged_in) -> None:
         )
     )
 
-    results = await get_saved_tracks(limit=1)
+    results = await get_saved_tracks("test-user", limit=1)
 
     assert results == [
         {
@@ -55,7 +55,7 @@ async def test_get_saved_tracks_sends_offset_param(logged_in) -> None:
         return_value=httpx.Response(200, json={"items": []})
     )
 
-    await get_saved_tracks(limit=10, offset=20)
+    await get_saved_tracks("test-user", limit=10, offset=20)
 
     assert route.calls.last.request.url.params["offset"] == "20"
 
@@ -71,7 +71,7 @@ async def test_save_tracks_raises_spotify_api_error_with_message(logged_in) -> N
     )
 
     with pytest.raises(SpotifyAPIError, match="Forbidden"):
-        await save_tracks(["t1"])
+        await save_tracks("test-user", ["t1"])
 
 
 @respx.mock
@@ -81,7 +81,7 @@ async def test_remove_saved_tracks_raises_spotify_api_error_with_message(logged_
     )
 
     with pytest.raises(SpotifyAPIError, match="Forbidden"):
-        await remove_saved_tracks(["t1"])
+        await remove_saved_tracks("test-user", ["t1"])
 
 
 @respx.mock

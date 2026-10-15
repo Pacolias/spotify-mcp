@@ -21,7 +21,7 @@ async def test_429_is_retried_once_after_the_retry_after_delay(logged_in, monkey
         ]
     )
 
-    results = await search_tracks("anything")
+    results = await search_tracks("test-user", "anything")
 
     assert results == []
     assert route.call_count == 2

@@ -1,3 +1,4 @@
+from spotify_mcp.mcp.current_user import current_user_id
 from spotify_mcp.mcp.server import mcp_server
 from spotify_mcp.spotify.auth import NotAuthenticatedError
 from spotify_mcp.spotify.client import search_tracks
@@ -8,7 +9,7 @@ async def search_track(query: str, limit: int = 5) -> str:
     """Search Spotify's catalog for tracks matching a query (song name, artist,
     etc.). Each result includes its id, for use with add_tracks / queue_track."""
     try:
-        results = await search_tracks(query, limit=limit)
+        results = await search_tracks(current_user_id(), query, limit=limit)
     except NotAuthenticatedError as exc:
         return str(exc)
 

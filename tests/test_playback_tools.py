@@ -10,7 +10,7 @@ from spotify_mcp.spotify.client import SpotifyAPIError, SpotifyPlaybackError
 
 
 async def test_now_playing_formats_active_track(monkeypatch) -> None:
-    async def fake_get_currently_playing():
+    async def fake_get_currently_playing(user_id):
         return {
             "name": "Track",
             "artists": ["Artist"],
@@ -27,7 +27,7 @@ async def test_now_playing_formats_active_track(monkeypatch) -> None:
 
 
 async def test_now_playing_formats_paused_track(monkeypatch) -> None:
-    async def fake_get_currently_playing():
+    async def fake_get_currently_playing(user_id):
         return {
             "name": "Track",
             "artists": ["Artist"],
@@ -44,7 +44,7 @@ async def test_now_playing_formats_paused_track(monkeypatch) -> None:
 
 
 async def test_now_playing_reports_nothing_playing(monkeypatch) -> None:
-    async def fake_get_currently_playing():
+    async def fake_get_currently_playing(user_id):
         return None
 
     monkeypatch.setattr(playback_tools, "get_currently_playing", fake_get_currently_playing)
@@ -53,7 +53,7 @@ async def test_now_playing_reports_nothing_playing(monkeypatch) -> None:
 
 
 async def test_now_playing_surfaces_not_authenticated(monkeypatch) -> None:
-    async def fake_get_currently_playing():
+    async def fake_get_currently_playing(user_id):
         raise NotAuthenticatedError("not logged in")
 
     monkeypatch.setattr(playback_tools, "get_currently_playing", fake_get_currently_playing)
@@ -62,7 +62,7 @@ async def test_now_playing_surfaces_not_authenticated(monkeypatch) -> None:
 
 
 async def test_pause_reports_success(monkeypatch) -> None:
-    async def fake_pause_playback():
+    async def fake_pause_playback(user_id):
         return None
 
     monkeypatch.setattr(playback_tools, "pause_playback", fake_pause_playback)
@@ -71,7 +71,7 @@ async def test_pause_reports_success(monkeypatch) -> None:
 
 
 async def test_pause_surfaces_playback_error(monkeypatch) -> None:
-    async def fake_pause_playback():
+    async def fake_pause_playback(user_id):
         raise SpotifyPlaybackError("No active device found")
 
     monkeypatch.setattr(playback_tools, "pause_playback", fake_pause_playback)
@@ -80,7 +80,7 @@ async def test_pause_surfaces_playback_error(monkeypatch) -> None:
 
 
 async def test_resume_reports_success(monkeypatch) -> None:
-    async def fake_resume_playback():
+    async def fake_resume_playback(user_id):
         return None
 
     monkeypatch.setattr(playback_tools, "resume_playback", fake_resume_playback)
@@ -89,7 +89,7 @@ async def test_resume_reports_success(monkeypatch) -> None:
 
 
 async def test_skip_next_reports_success(monkeypatch) -> None:
-    async def fake_skip_to_next():
+    async def fake_skip_to_next(user_id):
         return None
 
     monkeypatch.setattr(playback_tools, "skip_to_next", fake_skip_to_next)
@@ -98,7 +98,7 @@ async def test_skip_next_reports_success(monkeypatch) -> None:
 
 
 async def test_skip_previous_reports_success(monkeypatch) -> None:
-    async def fake_skip_to_previous():
+    async def fake_skip_to_previous(user_id):
         return None
 
     monkeypatch.setattr(playback_tools, "skip_to_previous", fake_skip_to_previous)
@@ -116,7 +116,7 @@ async def test_set_playback_volume_rejects_out_of_range() -> None:
 
 
 async def test_set_playback_volume_reports_success(monkeypatch) -> None:
-    async def fake_set_volume(volume_percent):
+    async def fake_set_volume(user_id, volume_percent):
         assert volume_percent == 42
 
     monkeypatch.setattr(playback_tools, "set_volume", fake_set_volume)
@@ -125,7 +125,7 @@ async def test_set_playback_volume_reports_success(monkeypatch) -> None:
 
 
 async def test_queue_track_reports_success(monkeypatch) -> None:
-    async def fake_add_to_queue(track_id):
+    async def fake_add_to_queue(user_id, track_id):
         assert track_id == "t1"
 
     monkeypatch.setattr(playback_tools, "add_to_queue", fake_add_to_queue)
@@ -134,7 +134,7 @@ async def test_queue_track_reports_success(monkeypatch) -> None:
 
 
 async def test_shuffle_reports_on_and_off(monkeypatch) -> None:
-    async def fake_set_shuffle(enabled):
+    async def fake_set_shuffle(user_id, enabled):
         return None
 
     monkeypatch.setattr(playback_tools, "set_shuffle", fake_set_shuffle)
@@ -148,7 +148,7 @@ async def test_repeat_mode_rejects_invalid_mode() -> None:
 
 
 async def test_repeat_mode_reports_success(monkeypatch) -> None:
-    async def fake_set_repeat_mode(mode):
+    async def fake_set_repeat_mode(user_id, mode):
         assert mode == "context"
 
     monkeypatch.setattr(playback_tools, "set_repeat_mode", fake_set_repeat_mode)
@@ -161,7 +161,7 @@ async def test_seek_rejects_negative_position() -> None:
 
 
 async def test_seek_reports_success(monkeypatch) -> None:
-    async def fake_seek_to_position(position_ms):
+    async def fake_seek_to_position(user_id, position_ms):
         assert position_ms == 5000
 
     monkeypatch.setattr(playback_tools, "seek_to_position", fake_seek_to_position)
@@ -170,7 +170,7 @@ async def test_seek_reports_success(monkeypatch) -> None:
 
 
 async def test_list_devices_formats_active_device(monkeypatch) -> None:
-    async def fake_get_devices():
+    async def fake_get_devices(user_id):
         return [
             {"id": "d1", "name": "Kitchen Speaker", "type": "Speaker", "is_active": True},
             {"id": "d2", "name": "Phone", "type": "Smartphone", "is_active": False},
@@ -185,7 +185,7 @@ async def test_list_devices_formats_active_device(monkeypatch) -> None:
 
 
 async def test_list_devices_reports_none_found(monkeypatch) -> None:
-    async def fake_get_devices():
+    async def fake_get_devices(user_id):
         return []
 
     monkeypatch.setattr(playback_tools, "get_devices", fake_get_devices)
@@ -196,7 +196,7 @@ async def test_list_devices_reports_none_found(monkeypatch) -> None:
 
 
 async def test_list_devices_surfaces_api_error(monkeypatch) -> None:
-    async def fake_get_devices():
+    async def fake_get_devices(user_id):
         raise SpotifyAPIError("boom")
 
     monkeypatch.setattr(playback_tools, "get_devices", fake_get_devices)
@@ -205,7 +205,7 @@ async def test_list_devices_surfaces_api_error(monkeypatch) -> None:
 
 
 async def test_activate_device_reports_success(monkeypatch) -> None:
-    async def fake_transfer_playback(device_id, play):
+    async def fake_transfer_playback(user_id, device_id, play):
         assert device_id == "d1"
         assert play is True
 

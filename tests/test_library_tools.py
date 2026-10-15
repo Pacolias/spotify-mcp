@@ -8,7 +8,7 @@ from spotify_mcp.spotify.client import SpotifyAPIError
 
 
 async def test_liked_songs_formats_results(monkeypatch) -> None:
-    async def fake_get_saved_tracks(limit, offset):
+    async def fake_get_saved_tracks(user_id, limit, offset):
         return [{"name": "Track", "artists": ["Artist"], "id": "t1"}]
 
     monkeypatch.setattr(library_tools, "get_saved_tracks", fake_get_saved_tracks)
@@ -19,7 +19,7 @@ async def test_liked_songs_formats_results(monkeypatch) -> None:
 
 
 async def test_liked_songs_reports_empty(monkeypatch) -> None:
-    async def fake_get_saved_tracks(limit, offset):
+    async def fake_get_saved_tracks(user_id, limit, offset):
         return []
 
     monkeypatch.setattr(library_tools, "get_saved_tracks", fake_get_saved_tracks)
@@ -28,7 +28,7 @@ async def test_liked_songs_reports_empty(monkeypatch) -> None:
 
 
 async def test_liked_songs_surfaces_not_authenticated(monkeypatch) -> None:
-    async def fake_get_saved_tracks(limit, offset):
+    async def fake_get_saved_tracks(user_id, limit, offset):
         raise NotAuthenticatedError("not logged in")
 
     monkeypatch.setattr(library_tools, "get_saved_tracks", fake_get_saved_tracks)
@@ -37,7 +37,7 @@ async def test_liked_songs_surfaces_not_authenticated(monkeypatch) -> None:
 
 
 async def test_like_tracks_reports_count(monkeypatch) -> None:
-    async def fake_save_tracks(track_ids):
+    async def fake_save_tracks(user_id, track_ids):
         assert track_ids == ["t1", "t2"]
 
     monkeypatch.setattr(library_tools, "save_tracks", fake_save_tracks)
@@ -46,7 +46,7 @@ async def test_like_tracks_reports_count(monkeypatch) -> None:
 
 
 async def test_like_tracks_surfaces_api_error(monkeypatch) -> None:
-    async def fake_save_tracks(track_ids):
+    async def fake_save_tracks(user_id, track_ids):
         raise SpotifyAPIError("Forbidden")
 
     monkeypatch.setattr(library_tools, "save_tracks", fake_save_tracks)
@@ -57,7 +57,7 @@ async def test_like_tracks_surfaces_api_error(monkeypatch) -> None:
 
 
 async def test_like_tracks_surfaces_not_authenticated(monkeypatch) -> None:
-    async def fake_save_tracks(track_ids):
+    async def fake_save_tracks(user_id, track_ids):
         raise NotAuthenticatedError("not logged in")
 
     monkeypatch.setattr(library_tools, "save_tracks", fake_save_tracks)
@@ -66,7 +66,7 @@ async def test_like_tracks_surfaces_not_authenticated(monkeypatch) -> None:
 
 
 async def test_unlike_tracks_reports_count(monkeypatch) -> None:
-    async def fake_remove_saved_tracks(track_ids):
+    async def fake_remove_saved_tracks(user_id, track_ids):
         assert track_ids == ["t1"]
 
     monkeypatch.setattr(library_tools, "remove_saved_tracks", fake_remove_saved_tracks)
@@ -77,7 +77,7 @@ async def test_unlike_tracks_reports_count(monkeypatch) -> None:
 
 
 async def test_unlike_tracks_surfaces_api_error(monkeypatch) -> None:
-    async def fake_remove_saved_tracks(track_ids):
+    async def fake_remove_saved_tracks(user_id, track_ids):
         raise SpotifyAPIError("Forbidden")
 
     monkeypatch.setattr(library_tools, "remove_saved_tracks", fake_remove_saved_tracks)

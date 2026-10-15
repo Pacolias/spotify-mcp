@@ -1,6 +1,7 @@
 from collections.abc import Coroutine
 from typing import Any
 
+from spotify_mcp.mcp.current_user import current_user_id
 from spotify_mcp.mcp.server import mcp_server
 from spotify_mcp.spotify.auth import NotAuthenticatedError
 from spotify_mcp.spotify.client import (
@@ -18,7 +19,7 @@ from spotify_mcp.spotify.client import (
 async def now_playing_resource() -> dict[str, Any]:
     """The track currently playing on the logged-in user's account, if any."""
     try:
-        playing = await get_currently_playing()
+        playing = await get_currently_playing(current_user_id())
     except NotAuthenticatedError as exc:
         return {"error": str(exc)}
 
@@ -29,7 +30,7 @@ async def now_playing_resource() -> dict[str, Any]:
 async def playlists_resource() -> dict[str, Any]:
     """The logged-in user's Spotify playlists."""
     try:
-        results = await list_playlists(limit=50)
+        results = await list_playlists(current_user_id(), limit=50)
     except NotAuthenticatedError as exc:
         return {"error": str(exc)}
 
@@ -40,7 +41,7 @@ async def playlists_resource() -> dict[str, Any]:
 async def playlist_resource(playlist_id: str) -> dict[str, Any]:
     """The tracks in a specific playlist."""
     try:
-        results = await get_playlist_tracks(playlist_id, limit=100)
+        results = await get_playlist_tracks(current_user_id(), playlist_id, limit=100)
     except NotAuthenticatedError as exc:
         return {"error": str(exc)}
 
@@ -52,7 +53,7 @@ async def profile_resource() -> dict[str, Any]:
     """The logged-in user's basic Spotify profile (id, display name,
     follower count, profile URL/image)."""
     try:
-        return await get_current_user_profile()
+        return await get_current_user_profile(current_user_id())
     except NotAuthenticatedError as exc:
         return {"error": str(exc)}
 
@@ -72,13 +73,14 @@ async def dashboard_resource() -> dict[str, Any]:
     available devices, top tracks, and recently played — everything a host
     might want to show at a glance, without several separate tool calls."""
     try:
-        now_playing = await get_currently_playing()
+        user_id = current_user_id()
+        now_playing = await get_currently_playing(user_id)
     except NotAuthenticatedError as exc:
         return {"error": str(exc)}
 
     return {
         "now_playing": now_playing or {"is_playing": False},
-        "devices": await _best_effort(get_devices()),
-        "top_tracks": await _best_effort(get_top_tracks(limit=5)),
-        "recently_played": await _best_effort(get_recently_played(limit=5)),
+        "devices": await _best_effort(get_devices(user_id)),
+        "top_tracks": await _best_effort(get_top_tracks(user_id, limit=5)),
+        "recently_played": await _best_effort(get_recently_played(user_id, limit=5)),
     }

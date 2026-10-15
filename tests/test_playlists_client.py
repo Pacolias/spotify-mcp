@@ -33,7 +33,7 @@ async def test_list_playlists_parses_results(logged_in) -> None:
         )
     )
 
-    results = await list_playlists(limit=1)
+    results = await list_playlists("test-user", limit=1)
 
     assert results == [
         {
@@ -69,7 +69,7 @@ async def test_get_playlist_tracks_parses_results(logged_in) -> None:
         )
     )
 
-    results = await get_playlist_tracks("p1")
+    results = await get_playlist_tracks("test-user", "p1")
 
     assert results == [
         {
@@ -96,7 +96,7 @@ async def test_create_playlist_posts_to_me_playlists(logged_in) -> None:
         )
     )
 
-    result = await create_playlist("My Playlist", description="desc", public=False)
+    result = await create_playlist("test-user", "My Playlist", description="desc", public=False)
 
     assert result == {
         "id": "new-playlist",
@@ -116,7 +116,7 @@ async def test_add_tracks_to_playlist_posts_to_items(logged_in) -> None:
         return_value=httpx.Response(201, json={"snapshot_id": "abc"})
     )
 
-    await add_tracks_to_playlist("p1", ["t1", "t2"])
+    await add_tracks_to_playlist("test-user", "p1", ["t1", "t2"])
 
     assert json.loads(route.calls.last.request.content) == {
         "uris": ["spotify:track:t1", "spotify:track:t2"]
@@ -132,7 +132,7 @@ async def test_remove_tracks_from_playlist_deletes_with_items_shape(logged_in) -
         return_value=httpx.Response(200, json={"snapshot_id": "abc"})
     )
 
-    await remove_tracks_from_playlist("p1", ["t1", "t2"])
+    await remove_tracks_from_playlist("test-user", "p1", ["t1", "t2"])
 
     assert json.loads(route.calls.last.request.content) == {
         "items": [
@@ -166,7 +166,7 @@ async def test_search_playlists_parses_results_and_skips_null_entries(logged_in)
         )
     )
 
-    results = await search_playlists("lofi coding")
+    results = await search_playlists("test-user", "lofi coding")
 
     assert results == [
         {

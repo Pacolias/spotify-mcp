@@ -27,7 +27,7 @@ async def test_pause_playback_calls_pause_endpoint(logged_in) -> None:
         return_value=httpx.Response(200, text="snapshot-id")
     )
 
-    await pause_playback()
+    await pause_playback("test-user")
 
     assert route.called
 
@@ -38,7 +38,7 @@ async def test_resume_playback_calls_play_endpoint(logged_in) -> None:
         return_value=httpx.Response(200, text="snapshot-id")
     )
 
-    await resume_playback()
+    await resume_playback("test-user")
 
     assert route.called
 
@@ -49,7 +49,7 @@ async def test_skip_to_next_calls_next_endpoint(logged_in) -> None:
         return_value=httpx.Response(200, text="snapshot-id")
     )
 
-    await skip_to_next()
+    await skip_to_next("test-user")
 
     assert route.called
 
@@ -60,7 +60,7 @@ async def test_skip_to_previous_calls_previous_endpoint(logged_in) -> None:
         return_value=httpx.Response(200, text="snapshot-id")
     )
 
-    await skip_to_previous()
+    await skip_to_previous("test-user")
 
     assert route.called
 
@@ -69,7 +69,7 @@ async def test_skip_to_previous_calls_previous_endpoint(logged_in) -> None:
 async def test_set_volume_sends_volume_percent_param(logged_in) -> None:
     route = respx.put(f"{SPOTIFY_API_BASE}/me/player/volume").mock(return_value=httpx.Response(204))
 
-    await set_volume(55)
+    await set_volume("test-user", 55)
 
     assert route.calls.last.request.url.params["volume_percent"] == "55"
 
@@ -80,7 +80,7 @@ async def test_add_to_queue_sends_track_uri_param(logged_in) -> None:
         return_value=httpx.Response(200, text="snapshot-id")
     )
 
-    await add_to_queue("abc123")
+    await add_to_queue("test-user", "abc123")
 
     assert route.calls.last.request.url.params["uri"] == "spotify:track:abc123"
 
@@ -104,7 +104,7 @@ async def test_pause_playback_raises_with_spotify_error_message(logged_in) -> No
     )
 
     with pytest.raises(SpotifyPlaybackError, match="No active device found"):
-        await pause_playback()
+        await pause_playback("test-user")
 
 
 @respx.mock
@@ -113,7 +113,7 @@ async def test_set_shuffle_sends_state_param(logged_in) -> None:
         return_value=httpx.Response(200)
     )
 
-    await set_shuffle(True)
+    await set_shuffle("test-user", True)
 
     assert route.calls.last.request.url.params["state"] == "true"
 
@@ -122,7 +122,7 @@ async def test_set_shuffle_sends_state_param(logged_in) -> None:
 async def test_set_repeat_mode_sends_state_param(logged_in) -> None:
     route = respx.put(f"{SPOTIFY_API_BASE}/me/player/repeat").mock(return_value=httpx.Response(200))
 
-    await set_repeat_mode("track")
+    await set_repeat_mode("test-user", "track")
 
     assert route.calls.last.request.url.params["state"] == "track"
 
@@ -131,7 +131,7 @@ async def test_set_repeat_mode_sends_state_param(logged_in) -> None:
 async def test_seek_to_position_sends_position_param(logged_in) -> None:
     route = respx.put(f"{SPOTIFY_API_BASE}/me/player/seek").mock(return_value=httpx.Response(200))
 
-    await seek_to_position(5000)
+    await seek_to_position("test-user", 5000)
 
     assert route.calls.last.request.url.params["position_ms"] == "5000"
 
@@ -155,7 +155,7 @@ async def test_get_devices_parses_results(logged_in) -> None:
         )
     )
 
-    results = await get_devices()
+    results = await get_devices("test-user")
 
     assert results == [
         {
@@ -172,7 +172,7 @@ async def test_get_devices_parses_results(logged_in) -> None:
 async def test_transfer_playback_sends_device_ids_and_play(logged_in) -> None:
     route = respx.put(f"{SPOTIFY_API_BASE}/me/player").mock(return_value=httpx.Response(204))
 
-    await transfer_playback("d1", play=True)
+    await transfer_playback("test-user", "d1", play=True)
 
     assert json.loads(route.calls.last.request.content) == {
         "device_ids": ["d1"],

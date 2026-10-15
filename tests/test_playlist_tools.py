@@ -8,7 +8,7 @@ from spotify_mcp.spotify.auth import NotAuthenticatedError
 
 
 async def test_list_user_playlists_formats_results(monkeypatch) -> None:
-    async def fake_list_playlists(limit):
+    async def fake_list_playlists(user_id, limit):
         return [{"name": "Chill", "track_count": 10, "public": True, "id": "p1"}]
 
     monkeypatch.setattr(playlist_tools, "list_playlists", fake_list_playlists)
@@ -19,7 +19,7 @@ async def test_list_user_playlists_formats_results(monkeypatch) -> None:
 
 
 async def test_list_user_playlists_marks_private(monkeypatch) -> None:
-    async def fake_list_playlists(limit):
+    async def fake_list_playlists(user_id, limit):
         return [{"name": "Secret", "track_count": 1, "public": False, "id": "p2"}]
 
     monkeypatch.setattr(playlist_tools, "list_playlists", fake_list_playlists)
@@ -30,7 +30,7 @@ async def test_list_user_playlists_marks_private(monkeypatch) -> None:
 
 
 async def test_list_user_playlists_reports_empty(monkeypatch) -> None:
-    async def fake_list_playlists(limit):
+    async def fake_list_playlists(user_id, limit):
         return []
 
     monkeypatch.setattr(playlist_tools, "list_playlists", fake_list_playlists)
@@ -39,7 +39,7 @@ async def test_list_user_playlists_reports_empty(monkeypatch) -> None:
 
 
 async def test_list_user_playlists_surfaces_not_authenticated(monkeypatch) -> None:
-    async def fake_list_playlists(limit):
+    async def fake_list_playlists(user_id, limit):
         raise NotAuthenticatedError("not logged in")
 
     monkeypatch.setattr(playlist_tools, "list_playlists", fake_list_playlists)
@@ -48,7 +48,7 @@ async def test_list_user_playlists_surfaces_not_authenticated(monkeypatch) -> No
 
 
 async def test_playlist_tracks_reports_empty(monkeypatch) -> None:
-    async def fake_get_playlist_tracks(playlist_id, limit):
+    async def fake_get_playlist_tracks(user_id, playlist_id, limit):
         return []
 
     monkeypatch.setattr(playlist_tools, "get_playlist_tracks", fake_get_playlist_tracks)
@@ -57,7 +57,7 @@ async def test_playlist_tracks_reports_empty(monkeypatch) -> None:
 
 
 async def test_create_user_playlist_formats_result(monkeypatch) -> None:
-    async def fake_create_playlist(name, description, public):
+    async def fake_create_playlist(user_id, name, description, public):
         return {"name": name, "id": "p1", "url": "https://open.spotify.com/playlist/p1"}
 
     monkeypatch.setattr(playlist_tools, "create_playlist", fake_create_playlist)
@@ -68,7 +68,7 @@ async def test_create_user_playlist_formats_result(monkeypatch) -> None:
 
 
 async def test_create_user_playlist_surfaces_not_authenticated(monkeypatch) -> None:
-    async def fake_create_playlist(name, description, public):
+    async def fake_create_playlist(user_id, name, description, public):
         raise NotAuthenticatedError("not logged in")
 
     monkeypatch.setattr(playlist_tools, "create_playlist", fake_create_playlist)
@@ -77,7 +77,7 @@ async def test_create_user_playlist_surfaces_not_authenticated(monkeypatch) -> N
 
 
 async def test_add_tracks_reports_count(monkeypatch) -> None:
-    async def fake_add_tracks_to_playlist(playlist_id, track_ids):
+    async def fake_add_tracks_to_playlist(user_id, playlist_id, track_ids):
         assert playlist_id == "p1"
         assert track_ids == ["t1", "t2"]
 
@@ -89,7 +89,7 @@ async def test_add_tracks_reports_count(monkeypatch) -> None:
 
 
 async def test_remove_tracks_reports_count(monkeypatch) -> None:
-    async def fake_remove_tracks_from_playlist(playlist_id, track_ids):
+    async def fake_remove_tracks_from_playlist(user_id, playlist_id, track_ids):
         assert playlist_id == "p1"
         assert track_ids == ["t1"]
 
@@ -103,7 +103,7 @@ async def test_remove_tracks_reports_count(monkeypatch) -> None:
 
 
 async def test_find_playlists_strips_html_from_description(monkeypatch) -> None:
-    async def fake_search_playlists(query, limit):
+    async def fake_search_playlists(user_id, query, limit):
         return [
             {
                 "name": "Focus",
@@ -123,7 +123,7 @@ async def test_find_playlists_strips_html_from_description(monkeypatch) -> None:
 
 
 async def test_find_playlists_reports_empty(monkeypatch) -> None:
-    async def fake_search_playlists(query, limit):
+    async def fake_search_playlists(user_id, query, limit):
         return []
 
     monkeypatch.setattr(playlist_tools, "search_playlists", fake_search_playlists)

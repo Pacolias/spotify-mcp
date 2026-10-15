@@ -45,3 +45,4 @@ Chronological log of architecture decisions and notable findings for `spotify-mc
 41. [MCP authorization: our server is the authorization server, built on the SDK's provider interface](41-mcp-authorization-server-via-sdk.md)
 42. [Multi-user data model for the remote MCP server](42-multi-user-data-model.md)
 43. [Multi-user storage implemented: users, encrypted Spotify credentials](43-multi-user-storage-implemented.md)
+44. [OAuth authorization server implemented: tables and provider](44-oauth-provider-implemented.md)

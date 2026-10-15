@@ -60,24 +60,17 @@ class NotAuthenticatedError(Exception):
     """Raised when a Spotify tool is called for a user with no stored Spotify login."""
 
 
-def _generate_code_verifier() -> str:
+def generate_code_verifier() -> str:
     return secrets.token_urlsafe(64)
 
 
-def _generate_code_challenge(code_verifier: str) -> str:
+def generate_code_challenge(code_verifier: str) -> str:
     digest = hashlib.sha256(code_verifier.encode("ascii")).digest()
     return base64.urlsafe_b64encode(digest).decode("ascii").rstrip("=")
 
 
-@router.get("/login")
-def login() -> RedirectResponse:
-    """Start the OAuth2 Authorization Code + PKCE flow: redirect the user's
-    browser to Spotify's consent screen."""
-    code_verifier = _generate_code_verifier()
-    code_challenge = _generate_code_challenge(code_verifier)
-    state = secrets.token_urlsafe(16)
-    _pending_logins[state] = code_verifier
-
+def build_authorize_url(state: str, code_challenge: str) -> str:
+    """Spotify consent-screen URL for an Authorization Code + PKCE login."""
     params = {
         "client_id": settings.spotify_client_id,
         "response_type": "code",
@@ -87,24 +80,16 @@ def login() -> RedirectResponse:
         "code_challenge": code_challenge,
         "state": state,
     }
-    return RedirectResponse(f"{SPOTIFY_AUTHORIZE_URL}?{urlencode(params)}")
+    return f"{SPOTIFY_AUTHORIZE_URL}?{urlencode(params)}"
 
 
-@router.get("/callback")
-async def callback(
-    code: str | None = None, state: str | None = None, error: str | None = None
-) -> HTMLResponse:
-    """Spotify redirects here after the user approves (or denies) access.
-    Exchanges the authorization code for an access/refresh token pair."""
-    if error:
-        raise HTTPException(status_code=400, detail=f"Spotify authorization failed: {error}")
-    if not code or not state:
-        raise HTTPException(status_code=400, detail="Missing code or state")
+async def complete_login(code: str, code_verifier: str) -> str:
+    """Finish a Spotify login: exchange the authorization code for tokens, find
+    out who logged in, and store them (encrypted) under that user.
 
-    code_verifier = _pending_logins.pop(state, None)
-    if code_verifier is None:
-        raise HTTPException(status_code=400, detail="Unknown or expired state")
-
+    Shared by the local `login` command's callback and the MCP authorization
+    server (spotify_mcp/oauth/provider.py). Returns the Spotify user ID.
+    """
     async with httpx.AsyncClient(timeout=_TIMEOUT) as client:
         response = await client.post(
             SPOTIFY_TOKEN_URL,
@@ -126,13 +111,14 @@ async def callback(
         me_response.raise_for_status()
         me = me_response.json()
 
+    user_id = str(me["id"])
     with Session(engine) as session:
-        user = session.get(User, me["id"]) or User(spotify_id=me["id"], created_at=_utcnow())
+        user = session.get(User, user_id) or User(spotify_id=user_id, created_at=_utcnow())
         user.display_name = me.get("display_name")
         session.add(user)
         session.merge(
             SpotifyCredentials(
-                user_id=me["id"],
+                user_id=user_id,
                 encrypted_access_token=encrypt(payload["access_token"]),
                 encrypted_refresh_token=encrypt(payload["refresh_token"]),
                 expires_at=_utcnow() + timedelta(seconds=payload["expires_in"]),
@@ -140,6 +126,35 @@ async def callback(
             )
         )
         session.commit()
+    return user_id
+
+
+@router.get("/login")
+def login() -> RedirectResponse:
+    """Start the OAuth2 Authorization Code + PKCE flow: redirect the user's
+    browser to Spotify's consent screen."""
+    code_verifier = generate_code_verifier()
+    state = secrets.token_urlsafe(16)
+    _pending_logins[state] = code_verifier
+    return RedirectResponse(build_authorize_url(state, generate_code_challenge(code_verifier)))
+
+
+@router.get("/callback")
+async def callback(
+    code: str | None = None, state: str | None = None, error: str | None = None
+) -> HTMLResponse:
+    """Spotify redirects here after the user approves (or denies) access.
+    Exchanges the authorization code for an access/refresh token pair."""
+    if error:
+        raise HTTPException(status_code=400, detail=f"Spotify authorization failed: {error}")
+    if not code or not state:
+        raise HTTPException(status_code=400, detail="Missing code or state")
+
+    code_verifier = _pending_logins.pop(state, None)
+    if code_verifier is None:
+        raise HTTPException(status_code=400, detail="Unknown or expired state")
+
+    await complete_login(code, code_verifier)
 
     login_complete.set()
     return HTMLResponse(_SUCCESS_PAGE)

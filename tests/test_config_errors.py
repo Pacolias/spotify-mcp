@@ -55,6 +55,8 @@ def test_short_jwt_signing_key_is_rejected(tmp_path) -> None:
 
     assert result.returncode == 1
     assert "at least 32 bytes" in result.stderr
+    # The rejected value is a secret, so it must not be echoed back.
+    assert "too-short" not in result.stderr
 
 
 def test_32_byte_jwt_signing_key_is_accepted(tmp_path) -> None:

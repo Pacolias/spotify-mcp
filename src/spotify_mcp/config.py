@@ -36,8 +36,6 @@ class Settings(BaseSettings):
     @field_validator("database_url")
     @classmethod
     def _use_psycopg_for_postgres(cls, value: str) -> str:
-        # Neon and most hosts hand out postgres:// or postgresql:// URLs, which
-        # SQLAlchemy maps to psycopg2. We use psycopg 3 (journal 50).
         for prefix in ("postgres://", "postgresql://"):
             if value.startswith(prefix):
                 return "postgresql+psycopg://" + value.removeprefix(prefix)
@@ -104,7 +102,14 @@ def _load_settings() -> Settings:
                 file=sys.stderr,
             )
         else:
-            print(f"Invalid configuration:\n{exc}", file=sys.stderr)
+            # Field name and reason only: pydantic's own message echoes the
+            # rejected value, and these values are secrets (signing key,
+            # encryption key, a database URL with its password).
+            problems = "\n".join(
+                f"  {'.'.join(str(part) for part in err['loc'])}: {err['msg']}"
+                for err in exc.errors()
+            )
+            print(f"Invalid configuration:\n{problems}", file=sys.stderr)
         sys.exit(1)
 
 

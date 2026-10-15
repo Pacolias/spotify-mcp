@@ -10,6 +10,7 @@ from fastapi import FastAPI, HTTPException
 from fastapi.responses import RedirectResponse, Response
 from mcp.server.transport_security import TransportSecuritySettings
 
+from spotify_mcp import log_redaction
 from spotify_mcp.config import settings
 from spotify_mcp.db.session import init_db
 from spotify_mcp.mcp.server import mcp_server, oauth_provider
@@ -57,6 +58,7 @@ def create_app() -> FastAPI:
 
     @asynccontextmanager
     async def lifespan(app: FastAPI) -> AsyncIterator[None]:
+        log_redaction.install()
         init_db()
         # FastAPI doesn't pass lifespan events to mounted apps, so the SDK's
         # session manager has to be started here (journal 08).

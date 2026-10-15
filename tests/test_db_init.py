@@ -11,4 +11,11 @@ def test_init_db_drops_the_old_plaintext_token_table(db_engine) -> None:
 
     tables = inspect(db_engine).get_table_names()
     assert "spotifytoken" not in tables
-    assert {"users", "spotify_credentials"} <= set(tables)
+    assert {
+        "users",
+        "spotify_credentials",
+        "oauth_clients",
+        "pending_authorizations",
+        "authorization_codes",
+        "refresh_tokens",
+    } <= set(tables)

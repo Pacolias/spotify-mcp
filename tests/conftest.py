@@ -23,7 +23,8 @@ def db_engine(tmp_path, monkeypatch):
     monkeypatch.setattr(db_session, "engine", engine)
     monkeypatch.setattr(auth_module, "engine", engine)
 
-    return engine
+    yield engine
+    engine.dispose()
 
 
 @pytest.fixture

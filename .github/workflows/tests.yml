@@ -35,7 +35,7 @@ jobs:
       JWT_SIGNING_KEY: ci-placeholder-signing-key-at-least-32-bytes
       TOKEN_ENCRYPTION_KEY: za0EN7YSS5tpCSlt6Yc7VzPJlboleuYfK6ndNxEvNAU=
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - name: Install uv
         uses: astral-sh/setup-uv@v5
@@ -54,7 +54,7 @@ jobs:
   lint:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - name: Install uv
         uses: astral-sh/setup-uv@v5
@@ -78,7 +78,7 @@ jobs:
     # Catches a broken Dockerfile before it reaches Render.
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - name: Build the production image
         run: docker build -t spotify-mcp:ci .

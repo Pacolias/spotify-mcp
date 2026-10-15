@@ -49,3 +49,4 @@ Chronological log of architecture decisions and notable findings for `spotify-mc
 45. [Remote only: the stdio entrypoint and the `login` command go away](45-remote-only-drop-stdio-and-login.md)
 46. [Streamable HTTP transport: app structure, user resolution, stateless sessions](46-http-transport-design.md)
 47. [Streamable HTTP transport implemented, and the first real connection from Claude Code](47-http-transport-implemented.md)
+48. [Deployment: Render, Neon Postgres, our own Docker image, deploys from GitHub Actions](48-deployment-render-neon-docker-cicd.md)

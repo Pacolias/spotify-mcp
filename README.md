@@ -165,7 +165,35 @@ Then run `/mcp`, pick `spotify-mcp` and choose **Authenticate**: your browser op
 
 **Other hosts:** add `http://127.0.0.1:8000/mcp` as a remote (HTTP) MCP server and follow the host's sign-in prompt.
 
-> Spotify only accepts plain-HTTP redirect URIs on loopback addresses (`127.0.0.1`). A deployed server needs HTTPS, with `OAUTH_ISSUER_URL`, `MCP_RESOURCE_URL` and `SPOTIFY_REDIRECT_URI` set to its public URLs (and the redirect URI added in the Spotify dashboard).
+## Deployment
+
+The production instance runs on **Render** (free plan) as a Docker container, with **Postgres on Neon**. Only accounts on the Spotify app's allow-list can sign in (Spotify's Development Mode limit is five users).
+
+```
+git push origin main
+   └─ GitHub Actions: tests (SQLite + Postgres) · lint + mypy · docker build
+         └─ all green → deploy job calls Render's deploy hook
+               └─ Render builds the Dockerfile and starts the container
+                     └─ on startup: Alembic migrations, then the server
+```
+
+Render's own auto-deploy is off, so green CI is the only way to production. The schema is managed with Alembic (`src/spotify_mcp/migrations/`). New migrations are generated with `uv run alembic revision --autogenerate -m "..."` and applied automatically when the server starts.
+
+**Environment variables on Render:**
+
+| Variable | Value |
+|---|---|
+| `DATABASE_URL` | Neon connection string (`postgresql://...`, a single line) |
+| `SPOTIFY_CLIENT_ID` | The Spotify app's client ID |
+| `SPOTIFY_REDIRECT_URI` | `https://<service>.onrender.com/auth/callback` (also registered in the Spotify dashboard) |
+| `OAUTH_ISSUER_URL` | `https://<service>.onrender.com` (no trailing slash) |
+| `MCP_RESOURCE_URL` | `https://<service>.onrender.com/mcp` |
+| `JWT_SIGNING_KEY`, `TOKEN_ENCRYPTION_KEY` | Production-only secrets, generated as in Setup |
+| `CLIENT_IP_HEADER` | `cf-connecting-ip`: the only client IP header on Render that a client can't forge, used by the per-IP rate limits |
+
+GitHub needs one repository secret, `RENDER_DEPLOY_HOOK_URL`.
+
+On the free plan the service sleeps after 15 minutes without traffic, so the first request after that takes up to a minute.
 
 ## Testing
 
@@ -174,6 +202,12 @@ uv run pytest
 ```
 
 Tests run against an isolated, throwaway SQLite database and mocked Spotify API responses — they never touch a real Spotify account or the local `spotify_mcp.db`. See [journal entry 11](journal/11-test-suite.md) for details.
+
+To run them against Postgres, as CI also does, point `TEST_DATABASE_URL` at a disposable database (every table in it is dropped and recreated):
+
+```bash
+TEST_DATABASE_URL=postgresql://postgres:dev@127.0.0.1:5432/spotify_test uv run pytest
+```
 
 ## Linting and formatting
 

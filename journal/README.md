@@ -50,3 +50,5 @@ Chronological log of architecture decisions and notable findings for `spotify-mc
 46. [Streamable HTTP transport: app structure, user resolution, stateless sessions](46-http-transport-design.md)
 47. [Streamable HTTP transport implemented, and the first real connection from Claude Code](47-http-transport-implemented.md)
 48. [Deployment: Render, Neon Postgres, our own Docker image, deploys from GitHub Actions](48-deployment-render-neon-docker-cicd.md)
+49. [Rate limiting: per user and per IP, in-memory token buckets, our own middleware](49-rate-limiting-design.md)
+50. [Database migrations with Alembic](50-alembic-migrations.md)

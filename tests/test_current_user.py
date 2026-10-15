@@ -10,14 +10,7 @@ def test_uses_the_subject_of_the_verified_access_token() -> None:
     assert current_user_id() == "test-user"
 
 
-def test_without_a_token_falls_back_to_the_single_local_user(seed_user) -> None:
-    seed_user("local-user")
-    auth_context_var.set(None)
-
-    assert current_user_id() == "local-user"
-
-
-def test_without_a_token_or_local_user_raises(db_engine) -> None:
+def test_without_a_token_raises() -> None:
     auth_context_var.set(None)
 
     with pytest.raises(NotAuthenticatedError):

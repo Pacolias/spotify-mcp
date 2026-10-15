@@ -16,13 +16,13 @@ from spotify_mcp.spotify.auth import (
 
 async def test_raises_when_never_logged_in(db_engine, seed_user) -> None:
     with pytest.raises(NotAuthenticatedError):
-        await get_valid_access_token()
+        await get_valid_access_token("alice")
 
 
 async def test_returns_token_unchanged_when_still_valid(db_engine, seed_user) -> None:
     seed_user("alice", access_token="still-valid-token", expires_in=timedelta(minutes=30))
 
-    token = await get_valid_access_token()
+    token = await get_valid_access_token("alice")
 
     assert token == "still-valid-token"
 
@@ -42,7 +42,7 @@ async def test_refreshes_token_when_close_to_expiry(db_engine, seed_user) -> Non
         )
     )
 
-    token = await get_valid_access_token()
+    token = await get_valid_access_token("alice")
 
     assert token == "refreshed-token"
     # The stored refresh token was decrypted before being sent to Spotify.
@@ -76,11 +76,3 @@ async def test_unknown_user_is_not_authenticated(db_engine, seed_user) -> None:
 
     with pytest.raises(NotAuthenticatedError):
         await get_valid_access_token("mallory")
-
-
-async def test_local_mode_refuses_to_guess_between_several_users(db_engine, seed_user) -> None:
-    seed_user("alice")
-    seed_user("bob")
-
-    with pytest.raises(NotAuthenticatedError, match="More than one"):
-        await get_valid_access_token()

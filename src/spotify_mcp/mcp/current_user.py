@@ -5,19 +5,16 @@ client call (journal 46, decision 2).
 """
 
 from mcp.server.auth.middleware.auth_context import get_access_token
-from sqlmodel import Session
 
-from spotify_mcp.db import session as db_session
-from spotify_mcp.spotify.auth import _only_local_user
+from spotify_mcp.spotify.auth import NotAuthenticatedError
 
 
 def current_user_id() -> str:
     """The Spotify user ID of the caller: the `sub` of the request's verified
-    access token. Over stdio there's no token, so it falls back to the single
-    locally logged-in user (raises NotAuthenticatedError if there isn't one).
+    access token. The SDK rejects /mcp requests without a valid token before
+    any tool runs, so a missing one here means a tool ran outside a request.
     """
     token = get_access_token()
-    if token is not None and token.subject is not None:
-        return token.subject
-    with Session(db_session.engine) as session:
-        return _only_local_user(session)
+    if token is None or token.subject is None:
+        raise NotAuthenticatedError("No authenticated user for this request.")
+    return token.subject

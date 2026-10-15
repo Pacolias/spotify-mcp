@@ -47,8 +47,8 @@ def db_engine(tmp_path, monkeypatch):
 
 @pytest.fixture
 def logged_in(db_engine) -> None:
-    """Seeds a valid (non-expiring-soon) token, as if /auth/login had already
-    completed, for tests that call Spotify-API-backed code."""
+    """Seeds a valid (non-expiring-soon) token for the test user, as if they
+    had already connected Spotify, for tests that call Spotify-API-backed code."""
     _seed_user(db_engine, "test-user", access_token="test-access-token")
 
 

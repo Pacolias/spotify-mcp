@@ -5,7 +5,7 @@ from sqlmodel import Session
 
 from spotify_mcp.db.encryption import decrypt
 from spotify_mcp.db.models import SpotifyCredentials, User
-from spotify_mcp.main import app
+from spotify_mcp.main import create_app
 from spotify_mcp.spotify import auth as auth_module
 
 
@@ -30,7 +30,7 @@ def test_callback_shows_success_page_and_sets_login_complete(db_engine) -> None:
         return_value=httpx.Response(200, json={"id": "alice", "display_name": "Alice"})
     )
 
-    with TestClient(app) as client:
+    with TestClient(create_app(), base_url="http://127.0.0.1:8000") as client:
         response = client.get("/auth/callback", params={"code": "abc", "state": "test-state"})
 
     assert response.status_code == 200

@@ -139,20 +139,19 @@ def login() -> RedirectResponse:
     return RedirectResponse(build_authorize_url(state, generate_code_challenge(code_verifier)))
 
 
-@router.get("/callback")
-async def callback(
-    code: str | None = None, state: str | None = None, error: str | None = None
-) -> HTMLResponse:
-    """Spotify redirects here after the user approves (or denies) access.
-    Exchanges the authorization code for an access/refresh token pair."""
+def is_local_login(state: str) -> bool:
+    """Whether `state` belongs to a login started by `spotify-mcp login`."""
+    return state in _pending_logins
+
+
+async def finish_local_login(code: str | None, state: str, error: str | None) -> HTMLResponse:
+    """The `spotify-mcp login` side of Spotify's callback (the route lives in
+    spotify_mcp/main.py). Exchanges the authorization code for tokens."""
+    code_verifier = _pending_logins.pop(state)
     if error:
         raise HTTPException(status_code=400, detail=f"Spotify authorization failed: {error}")
-    if not code or not state:
-        raise HTTPException(status_code=400, detail="Missing code or state")
-
-    code_verifier = _pending_logins.pop(state, None)
-    if code_verifier is None:
-        raise HTTPException(status_code=400, detail="Unknown or expired state")
+    if not code:
+        raise HTTPException(status_code=400, detail="Missing code")
 
     await complete_login(code, code_verifier)
 

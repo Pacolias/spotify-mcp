@@ -7,7 +7,7 @@ import uvicorn
 
 from spotify_mcp.config import settings
 from spotify_mcp.db.session import init_db
-from spotify_mcp.main import app as login_app
+from spotify_mcp.main import create_app
 from spotify_mcp.mcp.server import mcp_server
 from spotify_mcp.spotify import auth as auth_module
 
@@ -28,6 +28,12 @@ def main(ctx: typer.Context) -> None:
 
 
 @cli.command()
+def serve(host: str = "127.0.0.1", port: int = 8000) -> None:
+    """Run the remote MCP server over streamable HTTP, with OAuth."""
+    uvicorn.run("spotify_mcp.main:app", host=host, port=port)
+
+
+@cli.command()
 def login(timeout: int = 180) -> None:
     """Log in to Spotify: opens your browser and waits for you to approve access."""
     init_db()
@@ -39,7 +45,7 @@ async def _run_login(timeout: int) -> None:
     host = parsed.hostname or "127.0.0.1"
     port = parsed.port or 8000
 
-    config = uvicorn.Config(login_app, host=host, port=port, log_level="warning")
+    config = uvicorn.Config(create_app(), host=host, port=port, log_level="warning")
     server = uvicorn.Server(config)
     server_task = asyncio.create_task(server.serve())
 
